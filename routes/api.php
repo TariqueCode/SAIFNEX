@@ -3,6 +3,8 @@
 use App\Http\Controllers\Api\V1\PolicyController;
 use App\Http\Controllers\Api\V1\PolicyRuleController;
 use App\Http\Controllers\Api\V1\ConfigurationLifecycleController;
+use App\Http\Controllers\Api\V1\NetworkNodeController;
+use App\Http\Controllers\Api\V1\ConfigurationDeploymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -24,6 +26,11 @@ Route::prefix('v1')->group(function () {
         Route::post('/configurations/{configuration}/validate', [ConfigurationLifecycleController::class, 'validate']);
         Route::post('/configurations/{configuration}/stage', [ConfigurationLifecycleController::class, 'stage']);
         Route::post('/configurations/{configuration}/publish', [ConfigurationLifecycleController::class, 'publish']);
+        Route::get('/networks/{network}/nodes', [NetworkNodeController::class, 'index']);
+        Route::post('/networks/{network}/nodes', [NetworkNodeController::class, 'store']);
+        Route::get('/nodes/{node}', [NetworkNodeController::class, 'show']);
+        Route::post('/configurations/{configuration}/nodes/{node}/deploy', [ConfigurationDeploymentController::class, 'store']);
+        Route::get('/deployments/{deployment}', [ConfigurationDeploymentController::class, 'show']);
         Route::post('/networks/{network}/devices/enrollments', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'create']);
     });
 
