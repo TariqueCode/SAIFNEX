@@ -11,18 +11,13 @@ class ConfigurationLifecycleService
     public function validate(ConfigurationVersion $configuration): ConfigurationVersion
     {
         return DB::transaction(function () use ($configuration) {
-            $configuration = ConfigurationVersion::query()
-                ->lockForUpdate()
-                ->findOrFail($configuration->id);
+            $configuration = ConfigurationVersion::query()->lockForUpdate()->findOrFail($configuration->id);
 
             if (!in_array($configuration->status, ['GENERATED', 'VALID'], true)) {
                 throw new RuntimeException("Configuration {$configuration->version} cannot be validated from status {$configuration->status}.");
             }
 
-            $configuration->update([
-                'status' => 'VALIDATING',
-                'error_message' => null,
-            ]);
+            $configuration->update(['status' => 'VALIDATING', 'error_message' => null]);
 
             try {
                 $snapshot = $configuration->snapshot;
@@ -44,9 +39,7 @@ class ConfigurationLifecycleService
                     JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
                 );
 
-                $hash = hash('sha256', $canonical);
-
-                if (!hash_equals($configuration->snapshot_hash, $hash)) {
+                if (!hash_equals($configuration->snapshot_hash, hash('sha256', $canonical))) {
                     throw new RuntimeException('Configuration snapshot hash mismatch.');
                 }
 
@@ -71,9 +64,7 @@ class ConfigurationLifecycleService
     public function stage(ConfigurationVersion $configuration): ConfigurationVersion
     {
         return DB::transaction(function () use ($configuration) {
-            $configuration = ConfigurationVersion::query()
-                ->lockForUpdate()
-                ->findOrFail($configuration->id);
+            $configuration = ConfigurationVersion::query()->lockForUpdate()->findOrFail($configuration->id);
 
             if ($configuration->status !== 'VALID') {
                 throw new RuntimeException("Configuration {$configuration->version} must be VALID before staging.");
@@ -92,9 +83,7 @@ class ConfigurationLifecycleService
     public function publish(ConfigurationVersion $configuration): ConfigurationVersion
     {
         return DB::transaction(function () use ($configuration) {
-            $configuration = ConfigurationVersion::query()
-                ->lockForUpdate()
-                ->findOrFail($configuration->id);
+            $configuration = ConfigurationVersion::query()->lockForUpdate()->findOrFail($configuration->id);
 
             if ($configuration->status !== 'STAGED') {
                 throw new RuntimeException("Configuration {$configuration->version} must be STAGED before publishing.");
@@ -103,10 +92,8 @@ class ConfigurationLifecycleService
             ConfigurationVersion::query()
                 ->where('network_id', $configuration->network_id)
                 ->where('id', '!=', $configuration->id)
-                ->whereIn('status', ['PUBLISHED', 'ACTIVE'])
-                ->update([
-                    'status' => 'SUPERSEDED',
-                ]);
+                ->where('status', 'PUBLISHED')
+                ->update(['status' => 'SUPERSEDED']);
 
             $configuration->update([
                 'status' => 'PUBLISHED',
