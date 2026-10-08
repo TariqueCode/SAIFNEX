@@ -24,6 +24,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/devices/{device}/policies/{policy}/assign', [\App\Http\Controllers\Api\V1\PolicyAssignmentController::class, 'assignDevice']);
 
         Route::post('/networks/{network}/devices/enrollments', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'create']);
-        Route::post('/devices/enroll', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'consume']);
     });
+
+    // Device-side enrollment is authenticated by a short-lived one-time token.
+    Route::post('/devices/enroll', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'consume']);
 });
