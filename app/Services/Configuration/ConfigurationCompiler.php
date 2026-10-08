@@ -23,8 +23,6 @@ class ConfigurationCompiler
             $profiles = $network->policyProfiles
                 ->filter(fn ($profile) => $profile->status === 'ACTIVE');
 
-            $profileMap = $profiles->keyBy('id');
-
             $defaultProfile = $profiles->firstWhere('is_default', true);
 
             $devices = [];
@@ -73,7 +71,7 @@ class ConfigurationCompiler
                     'type' => $device->type,
                     'profile_id' => $profile->id,
                     'policy_version' => $version->version,
-                    'rules' => $this->activeRules($version->snapshot['rules'] ?? [], $at),
+                    'rules' => $this->activeRules($version->snapshot['rules'] ?? [], $network->schedules, $at),
                 ];
             }
 
@@ -108,12 +106,19 @@ class ConfigurationCompiler
         });
     }
 
-    private function activeRules(array $rules, CarbonInterface $at): array
+    private function activeRules(array $rules, $schedules, CarbonInterface $at): array
     {
         return collect($rules)
             ->filter(function (array $rule) use ($at): bool {
                 if (($rule['enabled'] ?? true) === false) {
                     return false;
+                }
+
+                if (!empty($rule['schedule_id'])) {
+                    $schedule = $schedules->firstWhere('id', $rule['schedule_id']);
+                    if (!$schedule || !app(\App\Services\Policy\ScheduleResolver::class)->isActive($schedule, $at)) {
+                        return false;
+                    }
                 }
 
                 if (!empty($rule['starts_at']) && $at->lt($rule['starts_at'])) {
