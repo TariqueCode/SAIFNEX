@@ -11,6 +11,8 @@ Route::prefix('v1')->group(function () {
 
         Route::get('/policies/{policy}', [PolicyController::class, 'show']);
         Route::patch('/policies/{policy}', [PolicyController::class, 'update']);
+        Route::post('/policies/{policy}/publish', [PolicyController::class, 'publish']);
+        Route::post('/policies/{policy}/rollback', [PolicyController::class, 'rollback']);
 
         Route::post('/policies/{policy}/rules', [PolicyRuleController::class, 'store']);
         Route::patch('/policies/{policy}/rules/{rule}', [PolicyRuleController::class, 'update']);
