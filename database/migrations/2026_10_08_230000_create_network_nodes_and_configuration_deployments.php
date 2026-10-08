@@ -40,7 +40,7 @@ return new class extends Migration
             $table->text('error_message')->nullable();
             $table->timestamps();
 
-            $table->unique(['configuration_version_id', 'network_node_id']);
+            // Explicit short name: MySQL limits index identifiers to 64 characters.\n            $table->unique(\n                ['configuration_version_id', 'network_node_id'],\n                'cfg_deployments_config_node_unique'\n            );
             $table->index(['network_id', 'status']);
             $table->index(['network_node_id', 'status']);
         });
