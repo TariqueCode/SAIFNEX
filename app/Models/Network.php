@@ -40,4 +40,9 @@ class Network extends Model
     {
         return $this->hasMany(Schedule::class);
     }
+
+    public function nodes(): HasMany
+    {
+        return $this->hasMany(NetworkNode::class);
+    }
 }
