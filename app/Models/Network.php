@@ -30,4 +30,14 @@ class Network extends Model
     {
         return $this->hasMany(Device::class);
     }
+
+    public function policyProfiles(): HasMany
+    {
+        return $this->hasMany(PolicyProfile::class);
+    }
+
+    public function schedules(): HasMany
+    {
+        return $this->hasMany(Schedule::class);
+    }
 }
