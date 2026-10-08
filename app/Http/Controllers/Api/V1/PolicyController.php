@@ -95,7 +95,16 @@ class PolicyController extends Controller
             ->wherePivot('status', 'ACTIVE')
             ->first();
 
-        if (!$member || !$member->role->permissions()->where('key', $permission)->exists()) {
+        if (!$member) {
+            abort(403, 'You do not have permission to access this network.');
+        }
+
+        $hasPermission = \App\Models\Role::query()
+            ->whereKey($member->pivot->role_id)
+            ->whereHas('permissions', fn ($query) => $query->where('key', $permission))
+            ->exists();
+
+        if (!$hasPermission) {
             abort(403, 'You do not have permission to access this network.');
         }
     }
