@@ -36,6 +36,7 @@ class PolicyVersionService
                     ->values()
                     ->map(fn ($rule) => [
                         'id' => $rule->id,
+                        'schedule_id' => $rule->schedule_id,
                         'target_type' => $rule->target_type,
                         'target' => $rule->target,
                         'action' => $rule->action,
