@@ -13,12 +13,15 @@ class PolicyProfile extends Model
 
     protected $fillable = [
         'network_id', 'name', 'key', 'preset_key', 'template_profile_id', 'source', 'status',
-        'description', 'is_default',
+        'description', 'is_default', 'is_template',
     ];
 
     protected function casts(): array
     {
-        return ['is_default' => 'boolean'];
+        return [
+            'is_default' => 'boolean',
+            'is_template' => 'boolean',
+        ];
     }
 
     public function template(): BelongsTo
