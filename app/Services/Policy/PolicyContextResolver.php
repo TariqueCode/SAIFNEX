@@ -37,7 +37,7 @@ class PolicyContextResolver
             ->latest('id')
             ->first();
 
-        if ($assignment?->profile) {
+        if ($assignment?->profile && $assignment->profile->status === 'ACTIVE') {
             return $assignment->profile;
         }
 
