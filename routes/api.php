@@ -17,5 +17,10 @@ Route::prefix('v1')->group(function () {
         Route::post('/policies/{policy}/rules', [PolicyRuleController::class, 'store']);
         Route::patch('/policies/{policy}/rules/{rule}', [PolicyRuleController::class, 'update']);
         Route::delete('/policies/{policy}/rules/{rule}', [PolicyRuleController::class, 'destroy']);
+
+        Route::get('/networks/{network}/presets', [\App\Http\Controllers\Api\V1\PresetController::class, 'index']);
+        Route::post('/networks/{network}/policies/from-preset', [\App\Http\Controllers\Api\V1\PresetController::class, 'store']);
+        Route::post('/networks/{network}/policies/{policy}/set-default', [\App\Http\Controllers\Api\V1\PolicyAssignmentController::class, 'setDefault']);
+        Route::post('/devices/{device}/policies/{policy}/assign', [\App\Http\Controllers\Api\V1\PolicyAssignmentController::class, 'assignDevice']);
     });
 });
