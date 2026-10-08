@@ -22,5 +22,8 @@ Route::prefix('v1')->group(function () {
         Route::post('/networks/{network}/policies/from-preset', [\App\Http\Controllers\Api\V1\PresetController::class, 'store']);
         Route::post('/networks/{network}/policies/{policy}/set-default', [\App\Http\Controllers\Api\V1\PolicyAssignmentController::class, 'setDefault']);
         Route::post('/devices/{device}/policies/{policy}/assign', [\App\Http\Controllers\Api\V1\PolicyAssignmentController::class, 'assignDevice']);
+
+        Route::post('/networks/{network}/devices/enrollments', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'create']);
+        Route::post('/devices/enroll', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'consume']);
     });
 });
