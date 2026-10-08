@@ -4,6 +4,7 @@ namespace App\Services\Policy;
 
 use App\Models\PolicyProfile;
 use App\Models\PolicyRule;
+use App\Models\PolicyRule as Rule;
 use Carbon\CarbonInterface;
 
 class PolicyEvaluator
@@ -19,10 +20,10 @@ class PolicyEvaluator
         string $targetType,
         string $target,
         ?CarbonInterface $at = null,
-    ): ?PolicyRule {
+    ): ?Rule {
         $at ??= now();
 
-        return $profile->rules()
+        $rules = $profile->rules()
             ->where('enabled', true)
             ->where(function ($query) use ($at) {
                 $query->whereNull('starts_at')
@@ -32,20 +33,23 @@ class PolicyEvaluator
                 $query->whereNull('expires_at')
                     ->orWhere('expires_at', '>=', $at);
             })
-            ->where(function ($query) use ($targetType, $target) {
-                $query->where(function ($q) use ($targetType, $target) {
-                    $q->where('target_type', $targetType)
-                        ->where('target', $target);
-                })->orWhere(function ($q) use ($target) {
-                    $q->where('target_type', 'DOMAIN_SUFFIX')
-                        ->where(function ($suffix) use ($target) {
-                            $suffix->where('target', $target)
-                                ->orWhereRaw('? LIKE CONCAT("%.", target)', [$target]);
-                        });
-                });
-            })
-            ->orderBy('priority')
-            ->orderBy('id')
+            ->whereIn('target_type', [$targetType, 'DOMAIN_SUFFIX'])
+            ->get()
+            ->filter(function (Rule $rule) use ($targetType, $target): bool {
+                if ($rule->target_type === $targetType && $rule->target === $target) {
+                    return true;
+                }
+
+                if ($rule->target_type !== 'DOMAIN_SUFFIX') {
+                    return false;
+                }
+
+                return $target === $rule->target
+                    || str_ends_with($target, '.'.$rule->target);
+            });
+
+        return $rules
+            ->sortBy(fn (Rule $rule) => [$rule->priority, $rule->id])
             ->first();
     }
 }
