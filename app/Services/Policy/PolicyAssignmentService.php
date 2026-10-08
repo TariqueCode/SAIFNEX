@@ -29,6 +29,10 @@ class PolicyAssignmentService
             throw new RuntimeException('Device and policy must belong to the same network.');
         }
 
+        if ($profile->status !== 'ACTIVE') {
+            throw new RuntimeException('Only an active policy can be assigned to a device.');
+        }
+
         $device->policyAssignments()->create([
             'profile_id' => $profile->id,
             'assigned_by' => $userId,
