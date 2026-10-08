@@ -9,6 +9,10 @@ use Carbon\CarbonInterface;
 
 class PolicyEvaluator
 {
+    public function __construct(
+        private readonly ScheduleResolver $schedules,
+    ) {}
+
     /**
      * Resolve the highest-priority applicable rule.
      *
@@ -34,8 +38,12 @@ class PolicyEvaluator
                     ->orWhere('expires_at', '>=', $at);
             })
             ->whereIn('target_type', [$targetType, 'DOMAIN_SUFFIX'])
+            ->with('schedule')
             ->get()
-            ->filter(function (Rule $rule) use ($targetType, $target): bool {
+            ->filter(function (Rule $rule) use ($targetType, $target, $at): bool {
+                if ($rule->schedule && !$this->schedules->isActive($rule->schedule, $at)) {
+                    return false;
+                }
                 if ($rule->target_type === $targetType && $rule->target === $target) {
                     return true;
                 }
