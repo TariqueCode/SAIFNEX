@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
     public function run(): void
     {
         $this->call(NetworkFoundationSeeder::class);
+        $this->call(PolicyPresetSeeder::class);
 
         User::factory()->create([
             'name' => 'Test User',
