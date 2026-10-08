@@ -11,7 +11,7 @@ class PolicyRule extends Model
     use HasFactory;
 
     protected $fillable = [
-        'profile_id', 'target_type', 'target', 'action', 'priority',
+        'profile_id', 'schedule_id', 'target_type', 'target', 'action', 'priority',
         'enabled', 'starts_at', 'expires_at', 'created_by',
     ];
 
@@ -22,6 +22,11 @@ class PolicyRule extends Model
             'starts_at' => 'datetime',
             'expires_at' => 'datetime',
         ];
+    }
+
+    public function schedule(): BelongsTo
+    {
+        return $this->belongsTo(Schedule::class);
     }
 
     public function profile(): BelongsTo
