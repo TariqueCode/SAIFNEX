@@ -12,13 +12,23 @@ class PolicyProfile extends Model
     use HasFactory;
 
     protected $fillable = [
-        'network_id', 'name', 'key', 'source', 'status',
+        'network_id', 'name', 'key', 'preset_key', 'template_profile_id', 'source', 'status',
         'description', 'is_default',
     ];
 
     protected function casts(): array
     {
         return ['is_default' => 'boolean'];
+    }
+
+    public function template(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'template_profile_id');
+    }
+
+    public function derivedProfiles(): HasMany
+    {
+        return $this->hasMany(self::class, 'template_profile_id');
     }
 
     public function network(): BelongsTo
