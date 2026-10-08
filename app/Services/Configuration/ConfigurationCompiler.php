@@ -4,11 +4,17 @@ namespace App\Services\Configuration;
 
 use App\Models\ConfigurationVersion;
 use App\Models\Network;
+use App\Services\Policy\ScheduleResolver;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ConfigurationCompiler
 {
+    public function __construct(
+        private readonly ScheduleResolver $scheduleResolver,
+    ) {
+    }
+
     public function compile(Network $network, ?CarbonInterface $at = null): ConfigurationVersion
     {
         $at ??= now();
@@ -24,10 +30,9 @@ class ConfigurationCompiler
                 ->filter(fn ($profile) => $profile->status === 'ACTIVE');
 
             $defaultProfile = $profiles->firstWhere('is_default', true);
-
             $devices = [];
 
-            foreach ($network->devices as $device) {
+            foreach ($network->devices->sortBy('id') as $device) {
                 if (!in_array($device->status, ['ACTIVE', 'PENDING'], true)) {
                     continue;
                 }
@@ -71,9 +76,15 @@ class ConfigurationCompiler
                     'type' => $device->type,
                     'profile_id' => $profile->id,
                     'policy_version' => $version->version,
-                    'rules' => $this->activeRules($version->snapshot['rules'] ?? [], $network->schedules, $at),
+                    'rules' => $this->activeRules(
+                        $version->snapshot['rules'] ?? [],
+                        $network->schedules,
+                        $at
+                    ),
                 ];
             }
+
+            ksort($devices, SORT_NATURAL);
 
             $snapshot = [
                 'schema_version' => 1,
@@ -92,7 +103,7 @@ class ConfigurationCompiler
 
             $hash = hash('sha256', $canonical);
 
-            $version = ((int) ConfigurationVersion::where('network_id', $network->id)->max('version')) + 1;
+            $version = ((int) ConfigurationVersion::where('network_id', $network->id)->lockForUpdate()->max('version')) + 1;
 
             return ConfigurationVersion::create([
                 'network_id' => $network->id,
@@ -109,14 +120,15 @@ class ConfigurationCompiler
     private function activeRules(array $rules, $schedules, CarbonInterface $at): array
     {
         return collect($rules)
-            ->filter(function (array $rule) use ($at): bool {
+            ->filter(function (array $rule) use ($at, $schedules): bool {
                 if (($rule['enabled'] ?? true) === false) {
                     return false;
                 }
 
                 if (!empty($rule['schedule_id'])) {
                     $schedule = $schedules->firstWhere('id', $rule['schedule_id']);
-                    if (!$schedule || !app(\App\Services\Policy\ScheduleResolver::class)->isActive($schedule, $at)) {
+
+                    if (!$schedule || !$this->scheduleResolver->isActive($schedule, $at)) {
                         return false;
                     }
                 }
@@ -131,7 +143,10 @@ class ConfigurationCompiler
 
                 return true;
             })
-            ->sortBy(fn (array $rule) => [$rule['priority'] ?? 1000, $rule['id'] ?? 0])
+            ->sortBy(fn (array $rule) => [
+                $rule['priority'] ?? 1000,
+                $rule['id'] ?? 0,
+            ])
             ->values()
             ->all();
     }
