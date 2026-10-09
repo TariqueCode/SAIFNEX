@@ -22,7 +22,7 @@
 <body>
 <header class="topbar">
     <div class="wrap nav">
-        <a class="brand" href="#top" aria-label="SAIFNEX home"><img src="/saifnex-logo.svg" alt="SAIFNEX — Network Intelligence" width="178" height="54" style="display:block;width:178px;height:auto;max-height:52px;object-fit:contain"></a>
+        <a class="brand" href="#top" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX — Network Intelligence" width="178" height="54" style="display:block;width:178px;height:auto;max-height:52px;object-fit:contain" onerror="this.onerror=null;this.src='/saifnex-logo.svg'"></a>
         <nav class="navlinks" id="navlinks" aria-label="Main navigation">
             <a href="#platform">Platform</a><a href="#capabilities">Capabilities</a><a href="#architecture">Architecture</a><a href="#principles">Principles</a><a href="#faq">FAQ</a>
         </nav>
