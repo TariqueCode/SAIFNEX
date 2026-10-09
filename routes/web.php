@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\SessionController;
 use App\Http\Controllers\WorkspaceController;
 use App\Http\Controllers\WorkspaceNetworkController;
+use App\Http\Controllers\WorkspaceNetworkDetailController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -25,4 +26,10 @@ Route::middleware('auth')->group(function () {
     Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
     Route::post('/workspace/networks', [WorkspaceNetworkController::class, 'store'])
         ->name('workspace.networks.store');
+    Route::get('/workspace/networks/{networkId}', [WorkspaceNetworkDetailController::class, 'show'])
+        ->whereNumber('networkId')
+        ->name('workspace.networks.show');
+    Route::post('/workspace/networks/{networkId}/policies', [WorkspaceNetworkDetailController::class, 'storePolicy'])
+        ->whereNumber('networkId')
+        ->name('workspace.networks.policies.store');
 });
