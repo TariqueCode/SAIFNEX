@@ -43,7 +43,6 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '22'
-          cache: npm
 
       - name: Install dependencies for verification
         run: composer install --no-interaction --prefer-dist --no-progress
@@ -65,7 +64,7 @@ jobs:
 
       - name: Build frontend assets
         run: |
-          npm ci
+          npm install --no-audit --no-fund
           npm run build
           test -f public/build/manifest.json
 
