@@ -36,9 +36,17 @@ If the hosting plan does not allow changing the document root, stop and arrange 
 
 Do not drop existing tables to resolve migration drift. Review the migration status and repair schema non-destructively.
 
-## 4. Get the release onto the account
+## 4. Get the tested cPanel package
 
-Clone the repository into a directory outside the public document root, or upload a reviewed release archive. Example SSH workflow:
+The repository builds a website-only ZIP through GitHub Actions after the Laravel tests, production Composer install, Vite build, and archive checks succeed.
+
+1. Open [SAIFNEX GitHub Actions](https://github.com/TariqueCode/SAIFNEX/actions/workflows/cpanel-release-package.yml).
+2. Open the latest successful **Build cPanel Release Package** run for the exact `main` commit you intend to deploy.
+3. Download the `SAIFNEX-cPanel-package` artifact. GitHub may require you to sign in with repository access; artifacts expire after 14 days.
+4. Extract the downloaded artifact ZIP, then extract the `SAIFNEX-cPanel-*.zip` inside it. The inner archive contains the Laravel website at its root, including `app/`, `public/`, `vendor/`, and the compiled `public/build/` assets.
+5. Upload/extract those contents into the application directory outside the public document root, e.g. `/home/ACCOUNT/SAIFNEX`. Do not extract the project into a public directory and do not upload `.env` from a local machine.
+
+If you prefer a source deployment, clone the repository into a directory outside the public document root. Example SSH workflow:
 
 ```sh
 cd /home/ACCOUNT
@@ -48,7 +56,7 @@ cd SAIFNEX
 
 For subsequent updates, use the reviewed release commit/tag. Do not deploy an unreviewed feature branch.
 
-Install PHP dependencies:
+When using the tested CI package, production Composer dependencies are already included; do not run Composer again unless you are intentionally doing a source deployment. For a source deployment, install PHP dependencies:
 
 ```sh
 composer install --no-dev --prefer-dist --optimize-autoloader
@@ -56,14 +64,14 @@ composer install --no-dev --prefer-dist --optimize-autoloader
 
 If Composer is not globally installed, use the Composer executable supplied by your host. Never run `composer update` on production as a substitute for installing the lockfile.
 
-Build front-end assets. If Node.js/npm is available on cPanel:
+The tested CI package already includes compiled Vite assets and `public/build/manifest.json`. For source deployments only, build front-end assets using the repository's npm dependencies. If Node.js/npm is available:
 
 ```sh
-npm ci
+npm install
 npm run build
 ```
 
-If Node.js is not available, build `public/build/` on a trusted local/CI environment using the repository's locked npm dependencies, then include that directory in the release upload. The built manifest must exist at `public/build/manifest.json`; otherwise pages using Vite assets can fail.
+If Node.js is not available, build `public/build/` in a trusted local/CI environment and include it in the source release upload. The manifest must exist at `public/build/manifest.json`.
 
 ## 5. Configure production environment
 
