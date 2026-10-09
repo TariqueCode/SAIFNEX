@@ -35,7 +35,7 @@
 @else
 <div class="table-wrap"><table><thead><tr><th>Network</th><th>Type</th><th>Devices</th><th>Nodes</th><th>Policies</th><th>Status</th></tr></thead><tbody>
 @foreach ($networks as $network)
-<tr><td><div class="network-name"><div class="network-icon">⌘</div><div><b>{{ $network->name }}</b><span>{{ $network->timezone }}</span></div></div></td><td>{{ str_replace('_', ' ', $network->type) }}</td><td>{{ $network->devices_count }}</td><td>{{ $network->nodes_count }}</td><td>{{ $network->policy_profiles_count }}</td><td><span class="status">{{ $network->status }}</span></td></tr>
+<tr><td><div class="network-name"><div class="network-icon">⌘</div><div><b><a href="{{ route('workspace.networks.show', $network->id) }}">{{ $network->name }} ↗</a></b><span>{{ $network->timezone }}</span></div></div></td><td>{{ str_replace('_', ' ', $network->type) }}</td><td>{{ $network->devices_count }}</td><td>{{ $network->nodes_count }}</td><td>{{ $network->policy_profiles_count }}</td><td><span class="status">{{ $network->status }}</span></td></tr>
 @endforeach
 </tbody></table></div>
 @endif
