@@ -75,7 +75,7 @@ Self-service registration is intentionally disabled. After configuring `.env` an
 
 Replace the PHP binary path with the versioned CLI binary provided by your host if it differs. The command asks for a name, email, and hidden password input, validates the email and password, and asks for confirmation before creating the account. Use a unique password of at least 12 characters with uppercase/lowercase letters and numbers. Do not put the password in the command line, GitHub, or chat. If the email already exists, the command stops instead of changing that account.
 
-## 8. Configure production environment
+## 6. Configure production environment
 
 Create `.env` from `.env.example` on the server. Keep it outside the document root and set values locally:
 
@@ -107,7 +107,7 @@ php artisan key:generate
 
 Do not regenerate `APP_KEY` on every deployment; doing so invalidates encrypted data and sessions. Set `APP_DEBUG=false` before serving public traffic. Configure a real mail transport before enabling email-dependent flows.
 
-## 6. Migrate and optimize
+## 7. Migrate and optimize
 
 First verify the CLI PHP version and extensions. Then, from the application root:
 
@@ -126,7 +126,7 @@ Run migrations only after confirming the database target and making a backup whe
 
 Make sure `storage/` and `bootstrap/cache/` are writable by the account's PHP process, but do not make the entire project world-writable.
 
-## 7. Configuration signing
+## 8. Configuration signing
 
 Configuration publication requires the PHP Sodium extension and a valid Ed25519 key pair. This is a separate prerequisite from making the website pages load.
 
@@ -140,7 +140,7 @@ If it returns `bool(false)`, ask the host to enable Sodium for the CLI PHP versi
 
 Once Sodium is confirmed, generate keys in a trusted shell and store them in the server's secret environment/configuration. Never commit either key. The secret key must be kept private; provision the public key to trusted nodes out-of-band. Follow [configuration signing and node runtime](configuration-signing-and-node-runtime.md) for the exact variables and key handling.
 
-## 8. Post-deployment smoke tests
+## 9. Post-deployment smoke tests
 
 Perform these checks using the production domain and a test account:
 
@@ -156,7 +156,7 @@ Perform these checks using the production domain and a test account:
 - Signing remains unavailable until Sodium and keys are configured.
 - The domain's document root points to `public/`, not the project root.
 
-## 9. Release / rollback checklist
+## 10. Release / rollback checklist
 
 Before each update:
 
