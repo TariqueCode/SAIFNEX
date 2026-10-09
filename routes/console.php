@@ -27,7 +27,7 @@ Artisan::command('saifnex:create-operator', function () {
             $this->error($error);
         }
 
-        return self::FAILURE;
+        return 1;
     }
 
     $password = (string) $this->secret('Operator password (minimum 12 characters)');
@@ -41,13 +41,13 @@ Artisan::command('saifnex:create-operator', function () {
             $this->error($error);
         }
 
-        return self::FAILURE;
+        return 1;
     }
 
     if ($this->confirm('Create this operator account?', false) !== true) {
         $this->warn('No account was created.');
 
-        return self::SUCCESS;
+        return 0;
     }
 
     User::query()->create([
@@ -58,5 +58,5 @@ Artisan::command('saifnex:create-operator', function () {
 
     $this->info('Operator account created. Sign in at /login and keep the password private.');
 
-    return self::SUCCESS;
+    return 0;
 })->purpose('Create the first SAIFNEX operator account securely from the server CLI');
