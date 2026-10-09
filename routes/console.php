@@ -1,10 +1,10 @@
 <?php
 
-use App\\Models\\User;
-use Illuminate\\Foundation\\Inspiring;
-use Illuminate\\Support\\Facades\\Artisan;
-use Illuminate\\Support\\Facades\\Validator;
-use Illuminate\\Validation\\Rules\\Password;
+use App\Models\User;
+use Illuminate\Foundation\Inspiring;
+use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\Rules\Password;
 
 Artisan::command('inspire', function () {
     $this->comment(Inspiring::quote());
