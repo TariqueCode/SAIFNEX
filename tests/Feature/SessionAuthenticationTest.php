@@ -31,7 +31,7 @@ class SessionAuthenticationTest extends TestCase
         ])->assertRedirect(route('workspace'));
 
         $this->assertAuthenticatedAs($user);
-        $this->get('/workspace')->assertOk()->assertSee('PREVIEW MODE');
+        $this->get('/workspace')->assertOk()->assertSee('Your networks')->assertSee('SESSION ACTIVE');
     }
 
     public function test_invalid_credentials_do_not_authenticate(): void
