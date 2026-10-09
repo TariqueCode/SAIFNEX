@@ -1,0 +1,101 @@
+name: Build cPanel Release Package
+
+on:
+  workflow_dispatch:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'app/**'
+      - 'bootstrap/**'
+      - 'config/**'
+      - 'database/**'
+      - 'public/**'
+      - 'resources/**'
+      - 'routes/**'
+      - 'composer.json'
+      - 'composer.lock'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/cpanel-release-package.yml'
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.4'
+          extensions: mbstring, pdo_mysql, sqlite, pdo_sqlite, bcmath, xml, curl, fileinfo, openssl
+          coverage: none
+          tools: composer:v2
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install dependencies for verification
+        run: composer install --no-interaction --prefer-dist --no-progress
+
+      - name: Prepare CI environment
+        run: |
+          cp .env.example .env
+          php artisan key:generate
+          mkdir -p database
+          touch database/database.sqlite
+          echo "DB_CONNECTION=sqlite" >> .env
+          echo "DB_DATABASE=$(pwd)/database/database.sqlite" >> .env
+
+      - name: Run Laravel tests
+        run: php artisan test
+
+      - name: Install production PHP dependencies
+        run: composer install --no-dev --no-interaction --prefer-dist --no-progress --optimize-autoloader
+
+      - name: Build frontend assets
+        run: |
+          npm install --no-audit --no-fund
+          npm run build
+          test -f public/build/manifest.json
+
+      - name: Assemble cPanel archive
+        id: archive
+        shell: bash
+        run: |
+          VERSION="${GITHUB_REF_NAME//\//-}"
+          ARCHIVE="SAIFNEX-cPanel-${VERSION}.zip"
+          zip -qr "../$ARCHIVE" . \
+            -x "./.git/*" \
+               "./.github/*" \
+               "./node/*" \
+               "./node_modules/*" \
+               "./tests/*" \
+               "./.env" \
+               "./storage/logs/*" \
+               "./storage/framework/cache/data/*"
+          mv "../$ARCHIVE" "$GITHUB_WORKSPACE/$ARCHIVE"
+          echo "archive=$ARCHIVE" >> "$GITHUB_OUTPUT"
+          unzip -l "$ARCHIVE" | grep -q 'public/build/manifest.json'
+          unzip -l "$ARCHIVE" | grep -q 'vendor/autoload.php'
+          if unzip -l "$ARCHIVE" | grep -Eq '(^|[[:space:]])\.env$'; then
+            echo "Refusing to publish archive containing production .env"
+            exit 1
+          fi
+
+      - name: Upload cPanel archive
+        uses: actions/upload-artifact@v4
+        with:
+          name: SAIFNEX-cPanel-package
+          path: ${{ steps.archive.outputs.archive }}
+          if-no-files-found: error
+          retention-days: 14
