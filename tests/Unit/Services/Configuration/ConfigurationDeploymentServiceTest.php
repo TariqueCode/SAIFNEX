@@ -113,7 +113,7 @@ class ConfigurationDeploymentServiceTest extends TestCase
             'status' => 'PUBLISHED',
             'schema_version' => '1',
             'snapshot' => ['schema_version' => 1, 'network' => ['id' => $network->id]],
-            'snapshot_hash' => str_repeat('x', 64),
+            'snapshot_hash' => str_repeat('c', 64),
             'signature' => base64_encode(str_repeat('x', 64)),
             'signature_algorithm' => 'Ed25519',
             'generated_at' => now(),
