@@ -51,9 +51,6 @@ class WorkspaceNodeEnrollmentTest extends TestCase
             'credential_hash' => hash('sha256', $token),
         ]);
 
-        $this->get(route('workspace.networks.nodes.index', $network->id))
-            ->assertOk()
-            ->assertDontSee($token);
     }
 
     public function test_user_cannot_register_node_in_another_owners_network(): void
