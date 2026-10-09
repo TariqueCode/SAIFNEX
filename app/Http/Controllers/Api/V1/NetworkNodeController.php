@@ -33,14 +33,26 @@ class NetworkNodeController extends Controller
             'capabilities' => ['nullable', 'array'],
         ]);
 
+        $token = bin2hex(random_bytes(32));
+
         $node = $network->nodes()->create([
             ...$data,
             'status' => 'PENDING',
         ]);
 
+        $node->forceFill([
+            'credential_hash' => hash('sha256', $token),
+            'credential_rotated_at' => now(),
+        ])->save();
+
         return response()->json([
             'success' => true,
-            'data' => $node,
+            'data' => $node->fresh(),
+            // Shown only once. Store securely on the node; never log or commit it.
+            'credentials' => [
+                'token' => $token,
+                'type' => 'Bearer',
+            ],
         ], 201);
     }
 
