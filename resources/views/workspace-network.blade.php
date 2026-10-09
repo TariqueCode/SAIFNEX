@@ -16,7 +16,7 @@
 <div class="grid"><div>
 <section class="panel"><div class="panel-head"><div><h2>Policy profiles</h2><p>Start with a draft, then add rules and validate before publishing.</p></div><span class="tag">{{ $network->policyProfiles->count() }} TOTAL</span></div>
 @if ($network->policyProfiles->isEmpty())<div class="empty"><b>No policy profiles yet</b>Create a draft profile to organize policy rules for this network.</div>@else
-@foreach ($network->policyProfiles as $profile)<div class="listrow"><div class="itemicon">☷</div><div class="itemmain"><b>{{ $profile->name }}</b><span>{{ $profile->key }} · {{ $profile->rules_count }} rules</span></div><span class="tag {{ $profile->status === 'PUBLISHED' ? 'green' : '' }}">{{ $profile->status }}</span></div>@endforeach
+@foreach ($network->policyProfiles as $profile)<div class="listrow"><div class="itemicon">☷</div><div class="itemmain"><b><a href="{{ route('workspace.networks.policies.show', [$network->id, $profile->id]) }}">{{ $profile->name }} ↗</a></b><span>{{ $profile->key }} · {{ $profile->rules_count }} rules</span></div><span class="tag {{ $profile->status === 'PUBLISHED' ? 'green' : '' }}">{{ $profile->status }}</span></div>@endforeach
 @endif
 </section>
 <section class="panel"><div class="panel-head"><div><h2>Edge nodes</h2><p>Node registration and health details.</p></div><span class="tag">RUNTIME PENDING</span></div>
