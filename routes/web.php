@@ -7,6 +7,7 @@ use App\Http\Controllers\WorkspaceNetworkDetailController;
 use App\Http\Controllers\WorkspacePolicyRuleController;
 use App\Http\Controllers\WorkspaceNodeController;
 use App\Http\Controllers\WorkspaceConfigurationController;
+use App\Http\Controllers\WorkspaceDeploymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'));
@@ -27,6 +28,8 @@ Route::middleware('auth')->group(function () {
     Route::post('/workspace/networks/{networkId}/configurations/{configurationId}/validate', [WorkspaceConfigurationController::class, 'validateVersion'])->whereNumber(['networkId', 'configurationId'])->name('workspace.networks.configurations.validate');
     Route::post('/workspace/networks/{networkId}/configurations/{configurationId}/stage', [WorkspaceConfigurationController::class, 'stage'])->whereNumber(['networkId', 'configurationId'])->name('workspace.networks.configurations.stage');
     Route::post('/workspace/networks/{networkId}/configurations/{configurationId}/publish', [WorkspaceConfigurationController::class, 'publish'])->whereNumber(['networkId', 'configurationId'])->name('workspace.networks.configurations.publish');
+    Route::get('/workspace/networks/{networkId}/deployments', [WorkspaceDeploymentController::class, 'index'])->whereNumber('networkId')->name('workspace.networks.deployments.index');
+    Route::post('/workspace/networks/{networkId}/deployments', [WorkspaceDeploymentController::class, 'store'])->whereNumber('networkId')->name('workspace.networks.deployments.store');
     Route::get('/workspace/networks/{networkId}/policies/{profileId}', [WorkspacePolicyRuleController::class, 'show'])->whereNumber(['networkId', 'profileId'])->name('workspace.networks.policies.show');
     Route::post('/workspace/networks/{networkId}/policies/{profileId}/rules', [WorkspacePolicyRuleController::class, 'store'])->whereNumber(['networkId', 'profileId'])->name('workspace.networks.policies.rules.store');
     Route::patch('/workspace/networks/{networkId}/policies/{profileId}/rules/{ruleId}', [WorkspacePolicyRuleController::class, 'update'])->whereNumber(['networkId', 'profileId', 'ruleId'])->name('workspace.networks.policies.rules.update');
