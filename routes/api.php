@@ -37,12 +37,12 @@ Route::prefix('v1')->group(function () {
     });
 
     Route::post('/devices/enroll', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'consume']);
-
-    Route::prefix('internal/v1/nodes/{node}')
-        ->middleware(AuthenticateNetworkNode::class)
-        ->group(function () {
-            Route::post('/heartbeat', [NodeRuntimeController::class, 'heartbeat']);
-            Route::get('/configuration', [NodeRuntimeController::class, 'currentConfiguration']);
-            Route::post('/deployments/{deployment}/ack', [NodeRuntimeController::class, 'acknowledge']);
-        });
 });
+
+Route::prefix('internal/v1/nodes/{node}')
+    ->middleware(AuthenticateNetworkNode::class)
+    ->group(function () {
+        Route::post('/heartbeat', [NodeRuntimeController::class, 'heartbeat']);
+        Route::get('/configuration', [NodeRuntimeController::class, 'currentConfiguration']);
+        Route::post('/deployments/{deployment}/ack', [NodeRuntimeController::class, 'acknowledge']);
+    });
