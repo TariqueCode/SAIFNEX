@@ -4,6 +4,8 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <meta name="theme-color" content="#080b12">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+    <link rel="alternate icon" href="/favicon.svg">
     <meta name="description" content="SAIFNEX is a unified Network Intelligence & Control Platform for network policy, visibility, and trusted edge operations.">
     <title>SAIFNEX — Network Intelligence & Control</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
