@@ -30,8 +30,8 @@ Never enable configuration publishing until the signing secret is configured. Th
 
 All endpoints require HTTPS and the per-node Bearer token returned exactly once when a node is registered. Only the SHA-256 token hash is stored by the control plane.
 
-- `POST /api/v1/internal/v1/nodes/{node}/heartbeat`
-- `GET /api/v1/internal/v1/nodes/{node}/configuration`
-- `POST /api/v1/internal/v1/nodes/{node}/deployments/{deployment}/ack`
+- `POST /api/internal/v1/nodes/{node}/heartbeat`
+- `GET /api/internal/v1/nodes/{node}/configuration`
+- `POST /api/internal/v1/nodes/{node}/deployments/{deployment}/ack`
 
 The node must store its token in a protected secret store and must never include it in logs. Revoke a node by setting its status to `REVOKED`; token rotation and automated expiry are follow-up hardening work.
