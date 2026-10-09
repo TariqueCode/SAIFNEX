@@ -18,6 +18,7 @@ on:
       - 'package-lock.json'
       - '.github/workflows/cpanel-release-package.yml'
   push:
+    branches: [main]
     tags:
       - 'v*'
 
