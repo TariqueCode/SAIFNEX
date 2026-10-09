@@ -7,6 +7,7 @@ use App\Http\Controllers\WorkspaceNetworkDetailController;
 use App\Http\Controllers\WorkspacePolicyRuleController;
 use App\Http\Controllers\WorkspaceNodeController;
 use App\Http\Controllers\WorkspaceConfigurationController;
+use App\Http\Controllers\WorkspaceDeploymentController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', fn () => view('welcome'));
