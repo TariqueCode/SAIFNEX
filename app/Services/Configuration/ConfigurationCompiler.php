@@ -12,6 +12,7 @@ class ConfigurationCompiler
 {
     public function __construct(
         private readonly ScheduleResolver $scheduleResolver,
+        private readonly CanonicalSnapshot $canonicalSnapshot,
     ) {
     }
 
@@ -96,12 +97,7 @@ class ConfigurationCompiler
                 'devices' => $devices,
             ];
 
-            $canonical = json_encode(
-                $snapshot,
-                JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
-            );
-
-            $hash = hash('sha256', $canonical);
+            $hash = hash('sha256', $this->canonicalSnapshot->encode($snapshot));
 
             $version = ((int) ConfigurationVersion::where('network_id', $network->id)->lockForUpdate()->max('version')) + 1;
 
