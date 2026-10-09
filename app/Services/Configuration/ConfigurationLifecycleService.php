@@ -8,6 +8,12 @@ use RuntimeException;
 
 class ConfigurationLifecycleService
 {
+    public function __construct(
+        private readonly CanonicalSnapshot $canonicalSnapshot,
+        private readonly ConfigurationSigningService $signingService,
+    ) {
+    }
+
     public function validate(ConfigurationVersion $configuration): ConfigurationVersion
     {
         return DB::transaction(function () use ($configuration) {
@@ -34,10 +40,7 @@ class ConfigurationLifecycleService
                     throw new RuntimeException('Configuration network mismatch.');
                 }
 
-                $canonical = json_encode(
-                    $snapshot,
-                    JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
-                );
+                $canonical = $this->canonicalSnapshot->encode($snapshot);
 
                 if (!hash_equals($configuration->snapshot_hash, hash('sha256', $canonical))) {
                     throw new RuntimeException('Configuration snapshot hash mismatch.');
@@ -89,6 +92,13 @@ class ConfigurationLifecycleService
                 throw new RuntimeException("Configuration {$configuration->version} must be STAGED before publishing.");
             }
 
+            try {
+                $signature = $this->signingService->sign($configuration);
+            } catch (\Throwable $e) {
+                $configuration->update(['error_message' => $e->getMessage()]);
+                throw $e;
+            }
+
             ConfigurationVersion::query()
                 ->where('network_id', $configuration->network_id)
                 ->where('id', '!=', $configuration->id)
@@ -96,6 +106,7 @@ class ConfigurationLifecycleService
                 ->update(['status' => 'SUPERSEDED']);
 
             $configuration->update([
+                ...$signature,
                 'status' => 'PUBLISHED',
                 'published_at' => now(),
                 'error_message' => null,

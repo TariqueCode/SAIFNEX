@@ -5,6 +5,8 @@ use App\Http\Controllers\Api\V1\PolicyRuleController;
 use App\Http\Controllers\Api\V1\ConfigurationLifecycleController;
 use App\Http\Controllers\Api\V1\NetworkNodeController;
 use App\Http\Controllers\Api\V1\ConfigurationDeploymentController;
+use App\Http\Controllers\Api\V1\Internal\NodeRuntimeController;
+use App\Http\Middleware\AuthenticateNetworkNode;
 use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
@@ -36,3 +38,11 @@ Route::prefix('v1')->group(function () {
 
     Route::post('/devices/enroll', [\App\Http\Controllers\Api\V1\DeviceEnrollmentController::class, 'consume']);
 });
+
+Route::prefix('internal/v1/nodes/{node}')
+    ->middleware(AuthenticateNetworkNode::class)
+    ->group(function () {
+        Route::post('/heartbeat', [NodeRuntimeController::class, 'heartbeat']);
+        Route::get('/configuration', [NodeRuntimeController::class, 'currentConfiguration']);
+        Route::post('/deployments/{deployment}/ack', [NodeRuntimeController::class, 'acknowledge']);
+    });

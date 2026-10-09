@@ -26,6 +26,10 @@ class ConfigurationDeploymentService
                 );
             }
 
+            if ($configuration->signature_algorithm !== 'Ed25519' || !$configuration->signature) {
+                throw new RuntimeException('Configuration must have a valid signing envelope before deployment.');
+            }
+
             if (in_array($node->status, ['REVOKED', 'OFFLINE', 'MAINTENANCE'], true)) {
                 throw new RuntimeException(
                     "Node {$node->name} cannot receive deployments while in status {$node->status}."

@@ -5,6 +5,7 @@ namespace Tests\Unit\Services\Configuration;
 use App\Models\ConfigurationVersion;
 use App\Models\Network;
 use App\Models\User;
+use App\Services\Configuration\CanonicalSnapshot;
 use App\Services\Configuration\ConfigurationLifecycleService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use RuntimeException;
@@ -14,8 +15,15 @@ class ConfigurationLifecycleServiceTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_configuration_moves_from_generated_to_published(): void
+    public function test_configuration_moves_from_generated_to_signed_published(): void
     {
+        $keyPair = sodium_crypto_sign_keypair();
+        config([
+            'saifnex.configuration_signing_secret_key' => base64_encode(
+                sodium_crypto_sign_secretkey($keyPair)
+            ),
+        ]);
+
         $user = User::factory()->create();
 
         $network = Network::create([
@@ -36,10 +44,7 @@ class ConfigurationLifecycleServiceTest extends TestCase
             'devices' => [],
         ];
 
-        $canonical = json_encode(
-            $snapshot,
-            JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR
-        );
+        $canonical = app(CanonicalSnapshot::class)->encode($snapshot);
 
         $configuration = ConfigurationVersion::create([
             'network_id' => $network->id,
@@ -62,6 +67,9 @@ class ConfigurationLifecycleServiceTest extends TestCase
         $configuration = $service->publish($configuration);
         $this->assertSame('PUBLISHED', $configuration->status);
         $this->assertNotNull($configuration->published_at);
+        $this->assertSame('Ed25519', $configuration->signature_algorithm);
+        $this->assertNotEmpty($configuration->signature);
+        $this->assertSame(88, strlen($configuration->signature));
     }
 
     public function test_invalid_hash_is_rejected(): void
