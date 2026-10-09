@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 260" role="img" aria-labelledby="title">
+<title id="title">SAIFNEX shield and wordmark</title>
+<defs>
+ <linearGradient id="steel" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#fff"/><stop offset=".48" stop-color="#dce7f6"/><stop offset="1" stop-color="#8296b8"/></linearGradient>
+ <linearGradient id="blue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00f5ff"/><stop offset=".45" stop-color="#087bff"/><stop offset="1" stop-color="#052eae"/></linearGradient>
+ <filter id="glow"><feGaussianBlur stdDeviation="3" result="b"/><feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge></filter>
+</defs>
+<g transform="translate(14 8) scale(.92)" stroke-linejoin="round">
+ <path d="M130 8 211 37v69c0 65-39 111-81 140-42-29-81-75-81-140V37Z" fill="#07152e" stroke="#147cff" stroke-width="5"/>
+ <path d="M130 20 198 44v61c0 53-31 91-68 118-37-27-68-65-68-118V44Z" fill="#08285b" stroke="#52eaff" stroke-width="2.5"/>
+ <path d="M130 18 158 65 143 91 130 218 117 91 102 65Z" fill="url(#blue)" stroke="#d9ffff" stroke-width="2" filter="url(#glow)"/>
+ <path d="M66 112 112 85 130 108 148 85 194 112 160 118 130 151 100 118Z" fill="url(#steel)" stroke="#0b76ff" stroke-width="2"/>
+ <path d="M75 130c31-30 69-25 112-54-7 29-27 47-54 57 28 2 44 14 57 30-43-9-77-4-115-33Z" fill="url(#steel)" stroke="#07152e" stroke-width="5"/>
+ <path d="M32 89C8 113 10 158 36 181M228 89c24 24 22 69-4 92M45 56l25 17M215 56l-25 17M34 199l23-10M226 199l-23-10" fill="none" stroke="#00dfff" stroke-width="3" filter="url(#glow)"/>
+ <g fill="#00edff" stroke="#caffff" stroke-width="2" filter="url(#glow)"><circle cx="27" cy="106" r="7"/><circle cx="34" cy="177" r="7"/><circle cx="232" cy="106" r="7"/><circle cx="225" cy="177" r="7"/><circle cx="70" cy="70" r="5"/><circle cx="190" cy="70" r="5"/></g>
+</g>
+<text x="265" y="164" font-family="Arial, Helvetica, sans-serif" font-size="126" font-weight="800" letter-spacing="-5" fill="url(#steel)" stroke="#101c38" stroke-width="2">SAIF</text>
+<text x="545" y="164" font-family="Arial, Helvetica, sans-serif" font-size="126" font-weight="800" letter-spacing="-5" fill="url(#blue)" stroke="#06255f" stroke-width="2">NEX</text>
+<path d="M454 173 480 124 506 173Z" fill="url(#blue)" stroke="#00dfff" stroke-width="2"/>
+</svg>
