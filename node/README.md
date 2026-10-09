@@ -1,0 +1,46 @@
+# SAIFNEX Node Runtime (bootstrap)
+
+This Go module is the first portable node agent for the SAIFNEX control plane. It authenticates to the existing internal node API, sends heartbeats, fetches assigned configuration deployments, validates the canonical snapshot SHA-256 and Ed25519 signature, atomically writes the verified snapshot, and acknowledges ACTIVE only after persistence succeeds.
+
+## Current boundary
+
+**This is not yet a production DNS resolver or traffic enforcement engine.** It proves the control-plane-to-node signed configuration path and durable activation record. Do not route production traffic through it until a DNS/data-plane adapter, policy enforcement, load/recovery tests, and operational hardening are implemented and verified.
+
+## Build and test
+
+Requires Go 1.23 or newer.
+
+```sh
+cd node
+go test ./...
+go build -o saifnex-node ./cmd/saifnex-node
+```
+
+## Configure
+
+Copy `saifnex-node.example.json` to a local file outside version control. Replace every placeholder using the node registration response and the trusted Ed25519 public key provisioned out-of-band. Never commit a real bearer token or private signing key.
+
+```sh
+./saifnex-node -config /etc/saifnex/node.json
+```
+
+The control-plane URL must be HTTPS. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
+
+## Activation behavior
+
+- Verifies the SHA-256 hash of Laravel-compatible canonical JSON.
+- Verifies Ed25519 signatures against the configured public key.
+- Checks a snapshot `network_id` when that field is present.
+- Writes `active-config.json` using a temporary file, fsync, and atomic rename.
+- Reports FAILED when verification or persistence fails; reports ACTIVE only after durable file activation.
+- Retains the previous active file if a new activation fails.
+
+## API compatibility
+
+```
+POST /api/internal/v1/nodes/{node}/heartbeat
+GET  /api/internal/v1/nodes/{node}/configuration
+POST /api/internal/v1/nodes/{node}/deployments/{deployment}/ack
+```
+
+This is an early runtime milestone. The next release must implement and test actual policy enforcement and node-side rollback/recovery before the platform is considered install-ready.

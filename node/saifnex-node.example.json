@@ -1,0 +1,10 @@
+{
+  "control_plane_url": "https://saifnex.example.com",
+  "node_id": "REPLACE_WITH_REGISTERED_NODE_ID",
+  "network_id": "REPLACE_WITH_NETWORK_ID",
+  "bearer_token": "SET_LOCALLY_NEVER_COMMIT_A_REAL_TOKEN",
+  "ed25519_public_key": "SET_BASE64_32_BYTE_PUBLIC_KEY",
+  "state_dir": "./state",
+  "poll_interval": "30s",
+  "http_timeout": "10s"
+}
