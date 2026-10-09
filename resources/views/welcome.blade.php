@@ -22,12 +22,7 @@
 <body>
 <header class="topbar">
     <div class="wrap nav">
-        <a class="brand" href="#top" aria-label="SAIFNEX home">
-            <span class="brand-mark" aria-hidden="true">
-                <svg viewBox="0 0 42 46" fill="none"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="M21 8 31 12v8c0 7-4.3 12.3-10 16-5.7-3.7-10-9-10-16v-8l10-4Z" stroke="#4388ff" stroke-width="1.2"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg>
-            </span>
-            <span>SAIFNEX<small>NETWORK INTELLIGENCE</small></span>
-        </a>
+        <a class="brand" href="#top" aria-label="SAIFNEX home"><img src="/saifnex-logo.svg" alt="SAIFNEX — Network Intelligence" width="178" height="54" style="display:block;width:178px;height:auto;max-height:52px;object-fit:contain"></a>
         <nav class="navlinks" id="navlinks" aria-label="Main navigation">
             <a href="#platform">Platform</a><a href="#capabilities">Capabilities</a><a href="#architecture">Architecture</a><a href="#principles">Principles</a><a href="#faq">FAQ</a>
         </nav>
