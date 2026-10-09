@@ -28,10 +28,12 @@ class NetworkNode extends Model
     protected $casts = [
         'capabilities' => 'array',
         'last_seen_at' => 'datetime',
+        'credential_rotated_at' => 'datetime',
     ];
 
     protected $hidden = [
         'credential_reference',
+        'credential_hash',
     ];
 
     public function network(): BelongsTo
