@@ -65,7 +65,17 @@ npm run build
 
 If Node.js is not available, build `public/build/` on a trusted local/CI environment using the repository's locked npm dependencies, then include that directory in the release upload. The built manifest must exist at `public/build/manifest.json`; otherwise pages using Vite assets can fail.
 
-## 5. Configure production environment
+## 5. Create the first operator account
+
+Self-service registration is intentionally disabled. After configuring `.env` and successfully running the migrations, create the first operator account from the server terminal in the application directory:
+
+```sh
+/opt/cpanel/ea-php84/root/usr/bin/php artisan saifnex:create-operator
+```
+
+Replace the PHP binary path with the versioned CLI binary provided by your host if it differs. The command asks for a name, email, and hidden password input, validates the email and password, and asks for confirmation before creating the account. Use a unique password of at least 12 characters with uppercase/lowercase letters and numbers. Do not put the password in the command line, GitHub, or chat. If the email already exists, the command stops instead of changing that account.
+
+## 8. Configure production environment
 
 Create `.env` from `.env.example` on the server. Keep it outside the document root and set values locally:
 
