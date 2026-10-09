@@ -1,6 +1,8 @@
 <?php
 
 use App\Http\Controllers\Auth\SessionController;
+use App\Http\Controllers\WorkspaceController;
+use App\Http\Controllers\WorkspaceNetworkController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -19,6 +21,8 @@ Route::get('/control-center', function () {
     return view('control-center');
 })->name('control-center');
 
-Route::get('/workspace', function () {
-    return view('control-center');
-})->middleware('auth')->name('workspace');
+Route::middleware('auth')->group(function () {
+    Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
+    Route::post('/workspace/networks', [WorkspaceNetworkController::class, 'store'])
+        ->name('workspace.networks.store');
+});
