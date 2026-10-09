@@ -67,6 +67,13 @@ class NodeRuntimeController extends Controller
             ], 409);
         }
 
+        if ($deployment->configuration->signature_algorithm !== 'Ed25519' || !$deployment->configuration->signature) {
+            return response()->json([
+                'success' => false,
+                'error' => ['code' => 'CONFIGURATION_SIGNATURE_MISSING', 'message' => 'Configuration has no trusted signing envelope.'],
+            ], 409);
+        }
+
         $deployment->forceFill([
             'status' => 'DELIVERING',
             'started_at' => $deployment->started_at ?? now(),
@@ -112,6 +119,13 @@ class NodeRuntimeController extends Controller
 
             if (!$configuration || $configuration->network_id !== $node->network_id) {
                 abort(404);
+            }
+
+            if ($configuration->signature_algorithm !== 'Ed25519' || !$configuration->signature) {
+                return response()->json([
+                    'success' => false,
+                    'error' => ['code' => 'CONFIGURATION_SIGNATURE_MISSING', 'message' => 'Configuration has no trusted signing envelope.'],
+                ], 409);
             }
 
             if ((int) $configuration->version !== (int) $data['config_version']
