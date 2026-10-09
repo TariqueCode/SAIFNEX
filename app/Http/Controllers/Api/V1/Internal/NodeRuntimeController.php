@@ -21,7 +21,6 @@ class NodeRuntimeController extends Controller
             'version' => ['nullable', 'string', 'max:50'],
             'config_version' => ['nullable', 'integer', 'min:0'],
             'capabilities' => ['sometimes', 'array'],
-            'metrics' => ['sometimes', 'array'],
         ]);
 
         $node->forceFill([
