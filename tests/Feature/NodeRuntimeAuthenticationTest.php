@@ -98,10 +98,13 @@ class NodeRuntimeAuthenticationTest extends TestCase
             'name' => 'node-'.$user->id,
             'type' => 'EDGE',
             'status' => $status,
-            'credential_hash' => hash('sha256', $token),
-            'credential_rotated_at' => now(),
         ]);
 
-        return [$node, $token];
+        $node->forceFill([
+            'credential_hash' => hash('sha256', $token),
+            'credential_rotated_at' => now(),
+        ])->save();
+
+        return [$node->fresh(), $token];
     }
 }
