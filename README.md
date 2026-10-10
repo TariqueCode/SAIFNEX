@@ -53,7 +53,7 @@ go build ./cmd/saifnex-node
 
 Read the [cPanel production deployment guide](docs/cpanel-installation.md) before configuring hosting. In particular, the domain document root must point to the Laravel `public/` directory, production debug must be disabled, and the correct PHP CLI extensions must be available.
 
-Configuration signing additionally requires Sodium and a securely provisioned Ed25519 key pair; do not disable verification if the host is missing Sodium.
+Configuration signing additionally requires Sodium and a securely provisioned Ed25519 key pair; do not disable verification if the host is missing Sodium. Run `php artisan saifnex:check-signing` in the target PHP CLI environment to verify Sodium availability and key-pair consistency without printing key material.
 
 ## Security principles
 
