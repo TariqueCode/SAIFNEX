@@ -1,15 +1,15 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\ConfigurationVersion;
-use App\Models\Network;
-use App\Services\Configuration\ConfigurationCompiler;
-use App\Services\Configuration\ConfigurationLifecycleService;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
-use Illuminate\View\View;
+use App\\Models\\ConfigurationVersion;
+use App\\Services\\Access\\NetworkAccess;
+use App\\Services\\Configuration\\ConfigurationCompiler;
+use App\\Services\\Configuration\\ConfigurationLifecycleService;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Facades\\Log;
+use Illuminate\\View\\View;
 use RuntimeException;
 use Throwable;
 
@@ -17,7 +17,7 @@ class WorkspaceConfigurationController extends Controller
 {
     public function index(Request $request, int $networkId): View
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'configuration.read');
         $configurations = ConfigurationVersion::query()
             ->where('network_id', $network->id)
             ->latest('version')
@@ -28,7 +28,7 @@ class WorkspaceConfigurationController extends Controller
 
     public function compile(Request $request, int $networkId, ConfigurationCompiler $compiler): RedirectResponse
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'configuration.manage');
 
         try {
             $configuration = $compiler->compile($network);
@@ -64,7 +64,8 @@ class WorkspaceConfigurationController extends Controller
 
     private function runLifecycle(Request $request, int $networkId, int $configurationId, ConfigurationLifecycleService $lifecycle, string $operation): RedirectResponse
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $permission = $operation === 'publish' ? 'configuration.publish' : 'configuration.manage';
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, $permission);
         $configuration = ConfigurationVersion::query()
             ->where('network_id', $network->id)
             ->findOrFail($configurationId);
@@ -101,12 +102,5 @@ class WorkspaceConfigurationController extends Controller
 
         return redirect()->route('workspace.networks.configurations.index', $network->id)
             ->with('status', "Configuration v{$result->version} status: {$result->status}.");
-    }
-
-    private function ownedNetwork(Request $request, int $networkId): Network
-    {
-        return Network::query()
-            ->where('owner_id', $request->user()->id)
-            ->findOrFail($networkId);
     }
 }
