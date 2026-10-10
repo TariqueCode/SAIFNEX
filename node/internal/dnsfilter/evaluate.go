@@ -26,6 +26,27 @@ type Rule struct {
 	Enabled    bool   `json:"enabled"`
 }
 
+// UnmarshalJSON preserves the control-plane convention that rules are enabled
+// unless explicitly disabled. A plain bool would silently turn an omitted
+// "enabled" field into false and cause Laravel snapshots to behave differently
+// from the policy compiler.
+func (r *Rule) UnmarshalJSON(data []byte) error {
+	type ruleAlias Rule
+	var decoded ruleAlias
+	if err := json.Unmarshal(data, &decoded); err != nil {
+		return err
+	}
+	var fields map[string]json.RawMessage
+	if err := json.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+	if _, exists := fields["enabled"]; !exists {
+		decoded.Enabled = true
+	}
+	*r = Rule(decoded)
+	return nil
+}
+
 // Decision describes the first matching rule, or the configured default action.
 type Decision struct {
 	Action   Action
