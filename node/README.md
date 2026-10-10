@@ -41,7 +41,7 @@ The handler listens on both UDP and TCP at the configured address. Blocked domai
 
 ## Policy evaluator
 
-`internal/dnsfilter` evaluates signed per-device policy snapshots using deterministic ascending priority and then rule ID. It supports Laravel's exact-domain `DOMAIN` rule plus the `DOMAIN_EXACT` compatibility alias and `DOMAIN_SUFFIX`. Disabled rules and known non-domain target families (`IP`, `CIDR`, `KEYWORD`) are skipped because they are handled by other evaluators; unknown target types and unsupported actions on applicable domain rules fail closed. Only snapshot schema version 1 is supported. Missing device entries or rule arrays are errors, not empty allow policies.
+`internal/dnsfilter` evaluates signed per-device policy snapshots using deterministic ascending priority and then rule ID. It supports Laravel's exact-domain `DOMAIN` rule plus the `DOMAIN_EXACT` compatibility alias and `DOMAIN_SUFFIX`. Rules default to enabled when the `enabled` field is omitted, matching the control-plane policy convention; an explicit `enabled: false` disables a rule, and a non-boolean value is rejected. Known non-domain target families (`IP`, `CIDR`, `KEYWORD`) are skipped because they are handled by other evaluators; unknown target types and unsupported actions on applicable domain rules fail closed. Only snapshot schema version 1 is supported. Missing device entries or rule arrays are errors, not empty allow policies.
 
 ## Active configuration safety
 
