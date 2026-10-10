@@ -362,3 +362,53 @@ func TestNewHandlerRejectsInvalidConfiguration(t *testing.T) {
 		})
 	}
 }
+
+
+func TestHandlersApplyOnlyTheirConfiguredDevicePolicy(t *testing.T) {
+	var forwarded atomic.Int32
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		forwarded.Add(1)
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		_ = w.WriteMsg(reply)
+	}))
+	snapshot := []byte(`{
+		"schema_version": 1,
+		"devices": {
+			"device-1": {"rules": []},
+			"device-2": {"rules": [
+				{"id": 9, "target_type": "DOMAIN_SUFFIX", "target": "restricted.example", "action": "BLOCK", "priority": 1, "enabled": true}
+			]}
+		}
+	}`)
+	newHandler := func(deviceID string) *Handler {
+		t.Helper()
+		handler, err := NewHandler(Config{
+			DeviceID: deviceID, Upstream: upstream, DefaultAction: dnsfilter.Allow,
+			Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+		})
+		if err != nil {
+			t.Fatal(err)
+		}
+		return handler
+	}
+
+	deviceOneListener := startDNSServer(t, newHandler("device-1"))
+	deviceTwoListener := startDNSServer(t, newHandler("device-2"))
+
+	deviceOneResponse := query(t, deviceOneListener, "ads.restricted.example")
+	if deviceOneResponse.Rcode != dns.RcodeSuccess {
+		t.Fatalf("device-1 rcode = %d, want successful forwarded response", deviceOneResponse.Rcode)
+	}
+	if got := forwarded.Load(); got != 1 {
+		t.Fatalf("upstream received %d requests after device-1 query, want 1", got)
+	}
+
+	deviceTwoResponse := query(t, deviceTwoListener, "ads.restricted.example")
+	if deviceTwoResponse.Rcode != dns.RcodeNameError {
+		t.Fatalf("device-2 rcode = %d, want NXDOMAIN from its BLOCK rule", deviceTwoResponse.Rcode)
+	}
+	if got := forwarded.Load(); got != 1 {
+		t.Fatalf("upstream received %d requests after device-2 blocked query, want still 1", got)
+	}
+}
