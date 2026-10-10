@@ -23,7 +23,8 @@ type Settings struct {
 	DNSEnabled      bool   `json:"dns_enabled,omitempty"`
 	DNSListenAddress string `json:"dns_listen_address,omitempty"`
 	DNSUpstream      string `json:"dns_upstream,omitempty"`
-	DNSDeviceID      string `json:"dns_device_id,omitempty"`
+	DNSDeviceID      string            `json:"dns_device_id,omitempty"`
+	DNSClientDeviceMap map[string]string `json:"dns_client_device_map,omitempty"`
 	DNSDefaultAction string `json:"dns_default_action,omitempty"`
 	DNSTimeout       string `json:"dns_timeout,omitempty"`
 }
@@ -69,8 +70,16 @@ func LoadSettings(path string) (Settings, error) {
 		return s, errors.New("http_timeout must be greater than zero")
 	}
 	if s.DNSEnabled {
-		if strings.TrimSpace(s.DNSDeviceID) == "" {
-			return s, errors.New("dns_device_id is required when dns_enabled is true")
+		if strings.TrimSpace(s.DNSDeviceID) == "" && len(s.DNSClientDeviceMap) == 0 {
+			return s, errors.New("dns_device_id or dns_client_device_map is required when dns_enabled is true")
+		}
+		for clientIP, deviceID := range s.DNSClientDeviceMap {
+			if net.ParseIP(strings.TrimSpace(clientIP)) == nil {
+				return s, fmt.Errorf("dns_client_device_map key %q must be an IP address", clientIP)
+			}
+			if strings.TrimSpace(deviceID) == "" {
+				return s, fmt.Errorf("dns_client_device_map entry for %q has an empty device ID", clientIP)
+			}
 		}
 		if _, _, err := net.SplitHostPort(s.DNSListenAddress); err != nil {
 			return s, fmt.Errorf("dns_listen_address must be host:port: %w", err)
