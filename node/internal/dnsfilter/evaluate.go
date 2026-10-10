@@ -91,10 +91,6 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 			return Decision{}, fmt.Errorf("%w: target type %q on rule %d", ErrUnsupportedRule, rule.TargetType, rule.ID)
 		}
 
-		action := Action(rule.Action)
-		if action != Allow && action != Block {
-			return Decision{}, fmt.Errorf("%w: action %q on rule %d", ErrUnsupportedRule, rule.Action, rule.ID)
-		}
 		target, err := NormalizeDomain(rule.Target)
 		if err != nil {
 			return Decision{}, fmt.Errorf("%w: target on rule %d", ErrUnsupportedRule, rule.ID)
@@ -112,6 +108,10 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 			return Decision{}, fmt.Errorf("%w: target type %q on rule %d", ErrUnsupportedRule, rule.TargetType, rule.ID)
 		}
 		if matched {
+			action := Action(rule.Action)
+			if action != Allow && action != Block {
+				return Decision{}, fmt.Errorf("%w: action %q on rule %d", ErrUnsupportedRule, rule.Action, rule.ID)
+			}
 			return Decision{Action: action, Matched: true, RuleID: rule.ID, Domain: domain}, nil
 		}
 	}
