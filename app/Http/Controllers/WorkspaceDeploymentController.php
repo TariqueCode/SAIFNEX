@@ -1,16 +1,16 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\ConfigurationDeployment;
-use App\\Models\\ConfigurationVersion;
-use App\\Models\\NetworkNode;
-use App\\Services\\Access\\NetworkAccess;
-use App\\Services\\Configuration\\ConfigurationDeploymentService;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Facades\\Log;
-use Illuminate\\View\\View;
+use App\Models\ConfigurationDeployment;
+use App\Models\ConfigurationVersion;
+use App\Models\NetworkNode;
+use App\Services\Access\NetworkAccess;
+use App\Services\Configuration\ConfigurationDeploymentService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\View\View;
 use RuntimeException;
 use Throwable;
 
