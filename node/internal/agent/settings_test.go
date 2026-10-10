@@ -93,3 +93,31 @@ func TestLoadSettingsAcceptsExplicitDNSConfiguration(t *testing.T) {
 		t.Fatalf("default DNS timeout = %q, want 5s", settings.DNSTimeout)
 	}
 }
+
+func TestLoadSettingsAcceptsDNSClientDeviceMapWithoutStaticDeviceID(t *testing.T) {
+	path := writeSettingsFixture(t, "30s", "10s")
+	data, err := os.ReadFile(path)
+	if err != nil { t.Fatal(err) }
+	body := string(data)
+	body = body[:len(body)-1] + `, "dns_enabled":true, "dns_listen_address":"127.0.0.1:5353", "dns_upstream":"1.1.1.1:53", "dns_client_device_map":{"192.168.1.20":"device-1","192.168.1.21":"device-2"}, "dns_default_action":"BLOCK"}`
+	if err := os.WriteFile(path, []byte(body), 0600); err != nil { t.Fatal(err) }
+	settings, err := LoadSettings(path)
+	if err != nil { t.Fatalf("expected valid client map settings, got %v", err) }
+	if len(settings.DNSClientDeviceMap) != 2 { t.Fatalf("mapping count = %d, want 2", len(settings.DNSClientDeviceMap)) }
+}
+
+func TestLoadSettingsRejectsInvalidDNSClientDeviceMap(t *testing.T) {
+	tests := []struct { name, mapping string }{
+		{"invalid IP", `{"not-an-ip":"device-1"}`},
+		{"empty device ID", `{"192.168.1.20":" "}`},
+	}
+	for _, tc := range tests { t.Run(tc.name, func(t *testing.T) {
+		path := writeSettingsFixture(t, "30s", "10s")
+		data, err := os.ReadFile(path)
+		if err != nil { t.Fatal(err) }
+		body := string(data)
+		body = body[:len(body)-1] + `, "dns_enabled":true, "dns_listen_address":"127.0.0.1:5353", "dns_upstream":"1.1.1.1:53", "dns_client_device_map":` + tc.mapping + `, "dns_default_action":"BLOCK"}`
+		if err := os.WriteFile(path, []byte(body), 0600); err != nil { t.Fatal(err) }
+		if _, err := LoadSettings(path); err == nil { t.Fatal("expected invalid client-device map to be rejected") }
+	}) }
+}
