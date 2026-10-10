@@ -78,11 +78,8 @@ class ConfigurationCompiler
                     'type' => $device->type,
                     'profile_id' => $profile->id,
                     'policy_version' => $version->version,
-                    'rules' => $this->activeRules(
-                        $version->snapshot['rules'] ?? [],
-                        $network->schedules,
-                        $at
-                    ),
+                    'rules' => $this->compileRules($version->snapshot['rules'] ?? []),
+                    'schedules' => $this->compileSchedules($network->schedules),
                 ];
             }
 
@@ -114,37 +111,39 @@ class ConfigurationCompiler
         });
     }
 
-    private function activeRules(array $rules, $schedules, CarbonInterface $at): array
+    /**
+     * Keep time-bound rules in the signed snapshot so the node can enforce
+     * schedule and expiry boundaries without waiting for a new deployment.
+     */
+    private function compileRules(array $rules): array
     {
         return collect($rules)
-            ->filter(function (array $rule) use ($at, $schedules): bool {
-                if (($rule['enabled'] ?? true) === false) {
-                    return false;
-                }
-
-                if (!empty($rule['schedule_id'])) {
-                    $schedule = $schedules->firstWhere('id', $rule['schedule_id']);
-
-                    if (!$schedule || !$this->scheduleResolver->isActive($schedule, $at)) {
-                        return false;
-                    }
-                }
-
-                if (!empty($rule['starts_at']) && CarbonImmutable::parse($rule['starts_at'])->gt($at)) {
-                    return false;
-                }
-
-                if (!empty($rule['expires_at']) && CarbonImmutable::parse($rule['expires_at'])->lte($at)) {
-                    return false;
-                }
-
-                return true;
-            })
             ->sortBy(fn (array $rule) => [
                 $rule['priority'] ?? 1000,
                 $rule['id'] ?? 0,
             ])
             ->values()
             ->all();
+    }
+
+    /**
+     * Include the exact schedule definitions referenced by runtime rules.
+     * The full definitions are signed with the same configuration snapshot.
+     */
+    private function compileSchedules($schedules): array
+    {
+        $compiled = [];
+
+        foreach ($schedules as $schedule) {
+            $compiled[(string) $schedule->id] = [
+                'timezone' => $schedule->timezone,
+                'definition' => $schedule->definition,
+                'enabled' => (bool) $schedule->enabled,
+            ];
+        }
+
+        ksort($compiled, SORT_NATURAL);
+
+        return $compiled;
     }
 }
