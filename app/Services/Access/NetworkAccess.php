@@ -1,10 +1,10 @@
 <?php
 
-namespace App\\Services\\Access;
+namespace App\Services\Access;
 
-use App\\Models\\Network;
-use App\\Models\\NetworkMember;
-use App\\Models\\User;
+use App\Models\Network;
+use App\Models\NetworkMember;
+use App\Models\User;
 
 class NetworkAccess
 {
