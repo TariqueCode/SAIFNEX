@@ -67,7 +67,7 @@ class ConfigurationCompilerTest extends TestCase
         );
     }
 
-    public function test_compiler_filters_schedule_and_expiry_rules_at_the_requested_instant(): void
+    public function test_compiler_embeds_schedule_and_expiry_metadata_for_runtime_enforcement(): void
     {
         $user = User::factory()->create();
         $network = Network::create([
