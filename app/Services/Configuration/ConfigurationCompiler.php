@@ -130,11 +130,11 @@ class ConfigurationCompiler
                     }
                 }
 
-                if (!empty($rule['starts_at']) && $at->lt(CarbonImmutable::parse($rule['starts_at']))) {
+                if (!empty($rule['starts_at']) && CarbonImmutable::parse($rule['starts_at'])->gt($at)) {
                     return false;
                 }
 
-                if (!empty($rule['expires_at']) && $at->gt(CarbonImmutable::parse($rule['expires_at']))) {
+                if (!empty($rule['expires_at']) && CarbonImmutable::parse($rule['expires_at'])->lte($at)) {
                     return false;
                 }
 
