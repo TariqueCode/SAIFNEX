@@ -78,6 +78,47 @@ class ScheduleResolverTest extends TestCase
         $this->assertFalse(app(ScheduleResolver::class)->isActive($schedule, now()));
     }
 
+
+    public function test_invalid_time_definition_fails_closed(): void
+    {
+        $schedule = $this->schedule([
+            'days' => [1, 2, 3, 4, 5, 6, 7],
+            'start' => '25:00',
+            'end' => '06:00',
+        ]);
+
+        $at = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Dhaka');
+
+        $this->assertFalse(app(ScheduleResolver::class)->isActive($schedule, $at));
+    }
+
+    public function test_invalid_weekday_definition_fails_closed(): void
+    {
+        $schedule = $this->schedule([
+            'days' => [0, 8],
+            'start' => '00:00',
+            'end' => '23:59',
+        ]);
+
+        $at = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Dhaka');
+
+        $this->assertFalse(app(ScheduleResolver::class)->isActive($schedule, $at));
+    }
+
+    public function test_invalid_timezone_fails_closed(): void
+    {
+        $schedule = $this->schedule([
+            'days' => [1, 2, 3, 4, 5, 6, 7],
+            'start' => '00:00',
+            'end' => '23:59',
+        ]);
+        $schedule->update(['timezone' => 'Not/A_Real_Timezone']);
+
+        $at = CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Dhaka');
+
+        $this->assertFalse(app(ScheduleResolver::class)->isActive($schedule, $at));
+    }
+
     private function schedule(array $definition): Schedule
     {
         $user = User::factory()->create();
