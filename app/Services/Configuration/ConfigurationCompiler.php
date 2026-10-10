@@ -4,15 +4,12 @@ namespace App\Services\Configuration;
 
 use App\Models\ConfigurationVersion;
 use App\Models\Network;
-use App\Services\Policy\ScheduleResolver;
-use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 class ConfigurationCompiler
 {
     public function __construct(
-        private readonly ScheduleResolver $scheduleResolver,
         private readonly CanonicalSnapshot $canonicalSnapshot,
     ) {
     }
