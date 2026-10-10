@@ -71,7 +71,7 @@ class WorkspaceScopedPermissionsTest extends TestCase
             ->assertNotFound();
 
         $this->assertDatabaseMissing('policy_rules', [
-            'policy_profile_id' => $profile->id,
+            'profile_id' => $profile->id,
             'target' => 'example.com',
         ]);
     }
