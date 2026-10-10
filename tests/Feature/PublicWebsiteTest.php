@@ -24,4 +24,14 @@ class PublicWebsiteTest extends TestCase
             ->assertSee('not connected to live networks')
             ->assertSee('Sign-in is available, but live metrics and network management actions are not connected in this preview.');
     }
+    public function test_security_page_explains_current_and_planned_safeguards(): void
+    {
+        $this->get('/security')
+            ->assertOk()
+            ->assertSee('Security by design.')
+            ->assertSee('Signed configuration')
+            ->assertSee('DNS traffic enforcement')
+            ->assertSee('not a security certification');
+    }
+
 }
