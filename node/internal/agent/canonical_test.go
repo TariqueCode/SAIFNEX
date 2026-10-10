@@ -123,3 +123,26 @@ func TestVerifyConfigurationRejectsMissingNetworkBinding(t *testing.T) {
 		t.Fatal("expected missing network binding to fail")
 	}
 }
+
+func TestVerifyConfigurationRejectsUnsupportedEnvelopeSchema(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := json.RawMessage(`{"schema_version":2,"network_id":"net-1"}`)
+	canonical, err := canonicalJSON(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := sha256.Sum256(canonical)
+	cfg := configuration{
+		DeploymentID: 1, ConfigurationID: 2, Version: 1, SchemaVersion: 2,
+		Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]),
+		SignatureAlgorithm: "Ed25519",
+		Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, canonical)),
+	}
+	settings := Settings{NetworkID: "net-1", PublicKey: base64.StdEncoding.EncodeToString(pub)}
+	if _, err := verifyConfiguration(cfg, settings); err == nil {
+		t.Fatal("expected unsupported envelope schema to fail")
+	}
+}
