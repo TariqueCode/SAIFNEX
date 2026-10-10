@@ -1,20 +1,20 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\Network;
-use App\Models\PolicyProfile;
-use App\Models\PolicyRule;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Validation\Rule;
-use Illuminate\View\View;
+use App\\Models\\Network;
+use App\\Models\\PolicyProfile;
+use App\\Services\\Access\\NetworkAccess;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Validation\\Rule;
+use Illuminate\\View\\View;
 
 class WorkspacePolicyRuleController extends Controller
 {
     public function show(Request $request, int $networkId, int $profileId): View
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'policy.read');
         $profile = $network->policyProfiles()
             ->with(['rules' => fn ($query) => $query->orderBy('priority')->orderBy('id')])
             ->findOrFail($profileId);
@@ -24,7 +24,7 @@ class WorkspacePolicyRuleController extends Controller
 
     public function store(Request $request, int $networkId, int $profileId): RedirectResponse
     {
-        [$network, $profile] = $this->ownedProfile($request, $networkId, $profileId);
+        [$network, $profile] = $this->accessibleProfile($request, $networkId, $profileId, 'policy.manage');
         $this->ensureDraft($profile);
 
         $data = $request->validate([
@@ -49,7 +49,7 @@ class WorkspacePolicyRuleController extends Controller
 
     public function update(Request $request, int $networkId, int $profileId, int $ruleId): RedirectResponse
     {
-        [$network, $profile] = $this->ownedProfile($request, $networkId, $profileId);
+        [$network, $profile] = $this->accessibleProfile($request, $networkId, $profileId, 'policy.manage');
         $this->ensureDraft($profile);
         $rule = $profile->rules()->findOrFail($ruleId);
 
@@ -74,7 +74,7 @@ class WorkspacePolicyRuleController extends Controller
 
     public function destroy(Request $request, int $networkId, int $profileId, int $ruleId): RedirectResponse
     {
-        [$network, $profile] = $this->ownedProfile($request, $networkId, $profileId);
+        [$network, $profile] = $this->accessibleProfile($request, $networkId, $profileId, 'policy.manage');
         $this->ensureDraft($profile);
         $profile->rules()->findOrFail($ruleId)->delete();
 
@@ -82,15 +82,11 @@ class WorkspacePolicyRuleController extends Controller
             ->with('status', 'Rule removed from the draft policy.');
     }
 
-    private function ownedNetwork(Request $request, int $networkId): Network
-    {
-        return Network::query()->where('owner_id', $request->user()->id)->findOrFail($networkId);
-    }
-
     /** @return array{0: Network, 1: PolicyProfile} */
-    private function ownedProfile(Request $request, int $networkId, int $profileId): array
+    private function accessibleProfile(Request $request, int $networkId, int $profileId, string $permission): array
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, $permission);
+
         return [$network, $network->policyProfiles()->findOrFail($profileId)];
     }
 
