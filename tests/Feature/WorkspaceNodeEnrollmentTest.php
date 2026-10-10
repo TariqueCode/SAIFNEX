@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Network;
+use App\Models\NetworkMember;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -83,6 +86,39 @@ class WorkspaceNodeEnrollmentTest extends TestCase
         ])->assertRedirect('/login');
 
         $this->assertDatabaseMissing('network_nodes', ['name' => 'Guest node']);
+    }
+
+    public function test_device_reader_can_view_nodes_but_cannot_enroll_one(): void
+    {
+        $owner = User::factory()->create();
+        $viewer = User::factory()->create();
+        $network = $this->createNetwork($owner);
+        $role = Role::create(['key' => 'device_viewer', 'name' => 'Device Viewer', 'is_system' => false]);
+        $permission = Permission::create(['key' => 'device.read', 'name' => 'View devices']);
+        $role->permissions()->attach($permission);
+        NetworkMember::create([
+            'network_id' => $network->id,
+            'user_id' => $viewer->id,
+            'role_id' => $role->id,
+            'status' => 'ACTIVE',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($viewer)
+            ->get(route('workspace.networks.nodes.index', $network->id))
+            ->assertOk();
+
+        $this->actingAs($viewer)
+            ->post(route('workspace.networks.nodes.store', $network->id), [
+                'name' => 'Unauthorized node',
+                'type' => 'EDGE',
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('network_nodes', [
+            'network_id' => $network->id,
+            'name' => 'Unauthorized node',
+        ]);
     }
 
     private function createNetwork(User $owner): Network
