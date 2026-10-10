@@ -134,6 +134,8 @@ func (c *Client) activate(cfg configuration, canonical []byte) error {
 		"version": cfg.Version,
 		"schema_version": cfg.SchemaVersion,
 		"snapshot_hash": cfg.SnapshotHash,
+		"signature": cfg.Signature,
+		"signature_algorithm": cfg.SignatureAlgorithm,
 		"snapshot": json.RawMessage(canonical),
 		"activated_at": time.Now().UTC().Format(time.RFC3339),
 	}
