@@ -6,6 +6,8 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"strconv"
+	"time"
 )
 
 // Action is the DNS decision produced by an explicitly supported domain rule.
@@ -25,6 +27,9 @@ type Rule struct {
 	Priority   int64  `json:"priority"`
 	Action     string `json:"action"`
 	Enabled    bool   `json:"enabled"`
+	ScheduleID int64  `json:"schedule_id"`
+	StartsAt   string `json:"starts_at"`
+	ExpiresAt  string `json:"expires_at"`
 }
 
 // UnmarshalJSON preserves the control-plane convention that rules are enabled
@@ -88,6 +93,12 @@ func NormalizeDomain(value string) (string, error) {
 // rule. Unsupported enabled rule types/actions return an error instead of being
 // silently interpreted. If no rule matches, defaultAction is returned.
 func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error) {
+	return EvaluateAt(query, rules, defaultAction, time.Now().UTC(), nil)
+}
+
+// EvaluateAt evaluates rule time bounds and schedules against one explicit instant.
+// Schedule definitions are keyed by their numeric schedule ID string.
+func EvaluateAt(query string, rules []Rule, defaultAction Action, at time.Time, schedules map[string]Schedule) (Decision, error) {
 	domain, err := NormalizeDomain(query)
 	if err != nil {
 		return Decision{}, err
@@ -98,6 +109,10 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 
 	for _, rule := range rules {
 		if !rule.Enabled {
+			continue
+		}
+
+		if !ruleTimeActive(rule, at, schedules) {
 			continue
 		}
 
@@ -138,4 +153,88 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 		}
 	}
 	return Decision{Action: defaultAction, Matched: false, Domain: domain}, nil
+}
+
+
+// Schedule mirrors the signed control-plane schedule subset consumed by DNS.
+type Schedule struct {
+	Timezone   string         `json:"timezone"`
+	Definition ScheduleWindow `json:"definition"`
+	Enabled    bool           `json:"enabled"`
+}
+
+type ScheduleWindow struct {
+	Days  []int  `json:"days"`
+	Start string `json:"start"`
+	End   string `json:"end"`
+}
+
+func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) bool {
+	if rule.StartsAt != "" {
+		start, err := time.Parse(time.RFC3339, rule.StartsAt)
+		if err != nil || at.Before(start) {
+			return false
+		}
+	}
+	if rule.ExpiresAt != "" {
+		expires, err := time.Parse(time.RFC3339, rule.ExpiresAt)
+		if err != nil || !at.Before(expires) {
+			return false
+		}
+	}
+	if rule.ScheduleID == 0 {
+		return true
+	}
+	schedule, ok := schedules[strconv.FormatInt(rule.ScheduleID, 10)]
+	if !ok || !schedule.Enabled {
+		return false
+	}
+	location, err := time.LoadLocation(schedule.Timezone)
+	if err != nil {
+		return false
+	}
+	local := at.In(location)
+	start, errStart := parseScheduleTime(schedule.Definition.Start)
+	end, errEnd := parseScheduleTime(schedule.Definition.End)
+	if errStart != nil || errEnd != nil || len(schedule.Definition.Days) == 0 {
+		return false
+	}
+	weekday := int(local.Weekday())
+	if weekday == 0 {
+		weekday = 7
+	}
+	current := local.Hour()*3600 + local.Minute()*60 + local.Second()
+	containsDay := func(day int) bool {
+		for _, candidate := range schedule.Definition.Days {
+			if candidate == day {
+				return true
+			}
+		}
+		return false
+	}
+	if start == end {
+		return containsDay(weekday)
+	}
+	if start < end {
+		return containsDay(weekday) && current >= start && current <= end
+	}
+	if current >= start {
+		return containsDay(weekday)
+	}
+	previous := weekday - 1
+	if previous == 0 {
+		previous = 7
+	}
+	return current <= end && containsDay(previous)
+}
+
+func parseScheduleTime(value string) (int, error) {
+	parsed, err := time.Parse("15:04", value)
+	if err != nil {
+		parsed, err = time.Parse("15:04:05", value)
+	}
+	if err != nil {
+		return 0, err
+	}
+	return parsed.Hour()*3600 + parsed.Minute()*60 + parsed.Second(), nil
 }
