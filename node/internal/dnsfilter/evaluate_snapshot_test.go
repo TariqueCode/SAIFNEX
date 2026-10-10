@@ -82,3 +82,10 @@ func TestEvaluateSnapshotBreaksEqualPriorityByRuleID(t *testing.T) {
 		t.Fatalf("decision = %+v, want lower-ID rule 10 to win equal-priority tie", decision)
 	}
 }
+
+func TestEvaluateSnapshotRejectsDeviceWithoutRulesList(t *testing.T) {
+	_, err := EvaluateSnapshot([]byte(`{"devices":{"7":{"name":"Laptop"}}}`), "7", "example.com", Block)
+	if err == nil {
+		t.Fatal("expected missing rules list to fail closed")
+	}
+}
