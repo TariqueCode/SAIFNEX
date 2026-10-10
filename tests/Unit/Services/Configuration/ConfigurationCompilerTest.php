@@ -117,7 +117,7 @@ class ConfigurationCompilerTest extends TestCase
             'target' => 'temporary.example',
             'action' => 'BLOCK',
             'priority' => 20,
-            'expires_at' => CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka'),
+            'expires_at' => CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka')->utc(),
         ]);
 
         $published = app(PolicyVersionService::class)->publish($profile, $user->id);
