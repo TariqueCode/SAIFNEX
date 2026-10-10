@@ -68,7 +68,7 @@ class NetworkNodeEnrollmentApiTest extends TestCase
         $this->actingAs($otherUser)->postJson(
             "/api/v1/networks/{$network->id}/nodes",
             ['name' => 'Unauthorized Node']
-        )->assertForbidden();
+        )->assertNotFound();
     }
 
     public function test_node_registration_validates_required_name(): void
