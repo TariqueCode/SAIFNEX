@@ -1,10 +1,6 @@
-# SAIFNEX Node Runtime (bootstrap)
+# SAIFNEX Node Runtime
 
-This Go module is the first portable node agent for the SAIFNEX control plane. It authenticates to the existing internal node API, sends heartbeats, fetches assigned configuration deployments, validates the canonical snapshot SHA-256 and Ed25519 signature, atomically writes the verified snapshot, and acknowledges ACTIVE only after persistence succeeds.
-
-## Current boundary
-
-**The node process is not yet a production DNS resolver or traffic enforcement engine.** The repository now has a tested DNS policy forwarding handler as a separate component, but it is not yet wired into the node process or connected to a live active-snapshot reload path. Do not route production traffic through it until integration, recovery, load, security, and operational tests pass.
+This Go module is the portable node agent for the SAIFNEX control plane. It authenticates to the internal node API, sends heartbeats, fetches configuration deployments, verifies canonical snapshot SHA-256 and Ed25519 signatures, atomically persists verified snapshots, and acknowledges activation after persistence succeeds.
 
 ## Build and test
 
@@ -12,40 +8,50 @@ Requires Go 1.23 or newer.
 
 ```sh
 cd node
+go mod tidy
 go test ./...
 go test -race ./...
 go vet ./...
 go build -o saifnex-node ./cmd/saifnex-node
 ```
 
-## Configure
+## Configure the node agent
 
-Copy `saifnex-node.example.json` to a local file outside version control. Replace every placeholder using the node registration response and the trusted Ed25519 public key provisioned out-of-band. Never commit a real bearer token or private signing key.
+Copy `saifnex-node.example.json` to a local file outside version control. Replace the placeholders using the node registration response and trusted Ed25519 public key provisioned out-of-band. Never commit a real bearer token or private signing key.
 
 ```sh
 ./saifnex-node -config /etc/saifnex/node.json
 ```
 
-The control-plane URL must be HTTPS. Poll intervals and HTTP timeouts must be valid positive durations; zero or negative values are rejected during settings validation. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
+The control-plane URL must use HTTPS. Poll intervals and HTTP timeouts must be positive durations. Protect the settings file (mode 0600) and state directory (mode 0700), and run under a dedicated low-privilege service account. The bearer token is not written to logs.
 
-## DNS policy evaluator and forwarding handler
+## Opt-in DNS runtime
 
-`internal/dnsfilter` contains a deterministic domain-rule evaluator and `EvaluateSnapshot`, which reads per-device rules from a configuration snapshot after the caller has verified the snapshot signature/hash. It accepts only snapshot `schema_version: 1`, normalizes ASCII DNS names, supports explicit `DOMAIN_EXACT` and `DOMAIN_SUFFIX` matches, sorts by ascending priority then rule ID, skips disabled rules, rejects unsupported enabled rule types/actions, and requires an explicit `ALLOW` or `BLOCK` default action. Missing or unknown schema versions are rejected instead of being guessed.
+The runtime now supports an **explicitly opt-in** DNS forwarding service. It remains disabled unless `dns_enabled` is set to `true`. When enabled, configuration must explicitly specify:
 
-`internal/dnsruntime` now provides a DNS handler that evaluates one explicitly configured device, returns NXDOMAIN for blocked names, forwards allowed queries to a configured upstream over UDP, returns SERVFAIL when the policy snapshot is unavailable or invalid, and validates required runtime settings. Tests cover block-without-forwarding, successful upstream forwarding, fail-closed behavior, and invalid handler configuration.
+- `dns_listen_address`: bind address and port, such as `127.0.0.1:5353`
+- `dns_upstream`: upstream resolver host and port, such as `1.1.1.1:53`
+- `dns_device_id`: the exact device key present in the signed snapshot; it is not inferred from the node ID
+- `dns_default_action`: `ALLOW` or `BLOCK`
+- `dns_timeout`: positive duration (defaults to `5s` when DNS is enabled)
 
-**Integration limitations:** the handler is not yet started by `cmd/saifnex-node`; it needs a secure configuration surface, an active verified-snapshot provider/reloader, and an explicit device ID mapping (node ID is not assumed to equal device ID). The current handler uses a configured default action and does not yet consume schedule state, support encrypted upstream transports, or provide per-client device identification. These must be resolved and tested before production filtering. Do not expose an unrestricted public recursive resolver.
+The handler listens on both UDP and TCP at the configured address. Blocked domain queries receive NXDOMAIN; allowed queries are forwarded over UDP to the configured upstream; missing, malformed, or invalid active policy fails closed with SERVFAIL. The local active snapshot is reloaded and its hash, Ed25519 signature, schema version, and network binding are re-verified before policy evaluation. A missing active snapshot therefore does not become an allow-all policy.
 
-## Activation behavior
+**Safety:** DNS remains disabled in the example configuration. Do not bind this service to a public interface or expose it as an unrestricted public resolver. Start with loopback in a controlled test environment. Before using a LAN-facing address, configure firewall rules and validate the intended device-to-policy mapping. This initial integration uses one configured device ID for all requests received by that listener; per-client device identification, schedule evaluation, encrypted upstream transport, caching, metrics, and production-grade operational recovery remain future work. The configured default action applies when no domain rule matches, so choose it intentionally.
 
-- Verifies the SHA-256 hash of Laravel-compatible canonical JSON.
-- Verifies Ed25519 signatures against the configured public key.
-- Requires matching snapshot/envelope schema versions and validates the network binding against the enrolled network; missing or conflicting network identity is rejected.
-- Writes `active-config.json` using a temporary file, fsync, and atomic rename.
-- Reports FAILED when verification or persistence fails; reports ACTIVE only after durable file activation.
-- Retains the previous active file if a new activation fails.
+## Policy evaluator
 
-## API compatibility
+`internal/dnsfilter` evaluates signed per-device policy snapshots using deterministic ascending priority and then rule ID. It supports explicit `DOMAIN_EXACT` and `DOMAIN_SUFFIX` rules, skips disabled rules, and rejects unsupported enabled rule types/actions instead of guessing. Only snapshot schema version 1 is supported. Missing device entries or rule arrays are errors, not empty allow policies.
+
+## Active configuration safety
+
+- Verifies SHA-256 and Ed25519 signature before activation.
+- Requires matching envelope/snapshot schema versions and the enrolled network binding.
+- Persists the signature metadata with the active snapshot so the DNS data plane can re-verify it when reading local state.
+- Writes via a temporary file, fsync, and atomic rename.
+- Reports FAILED on verification or persistence failure and ACTIVE only after durable persistence.
+
+## Control-plane API
 
 ```
 POST /api/internal/v1/nodes/{node}/heartbeat
@@ -53,4 +59,4 @@ GET  /api/internal/v1/nodes/{node}/configuration
 POST /api/internal/v1/nodes/{node}/deployments/{deployment}/ack
 ```
 
-This is an early runtime milestone. Integration, node-side rollback/recovery, and security/operational validation are still required before the platform is considered install-ready.
+This is an integration milestone, not yet an install-ready production release. Continue with real compiler-to-node integration tests, per-client device identity, policy schedule support, update/rollback recovery, load testing, and operational security review before production deployment.
