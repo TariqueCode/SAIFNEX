@@ -69,7 +69,7 @@ func TestEvaluateSnapshotRequiresExplicitValidDefault(t *testing.T) {
 }
 
 func TestEvaluateSnapshotBreaksEqualPriorityByRuleID(t *testing.T) {
-	snapshot := []byte(`{"devices":{"7":{"rules":[
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
 		{"id": 20, "target_type":"DOMAIN_EXACT","target":"example.com","action":"BLOCK","priority":5,"enabled":true},
 		{"id": 10, "target_type":"DOMAIN_EXACT","target":"example.com","action":"ALLOW","priority":5,"enabled":true}
 	]}}}`)
