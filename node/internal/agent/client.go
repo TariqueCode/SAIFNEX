@@ -157,9 +157,16 @@ func (c *Client) activate(cfg configuration, canonical []byte) error {
 
 func (c *Client) activeVersion() int {
 	b, err := os.ReadFile(filepath.Join(c.settings.StateDir, "active-config.json"))
-	if err != nil { return 0 }
-	var current struct { Version int `json:"version"` }
-	if json.Unmarshal(b, &current) != nil { return 0 }
+	if err != nil {
+		return 0
+	}
+	var current configuration
+	if err := json.Unmarshal(b, &current); err != nil {
+		return 0
+	}
+	if _, err := verifyConfiguration(current, c.settings); err != nil {
+		return 0
+	}
 	return current.Version
 }
 
