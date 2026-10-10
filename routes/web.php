@@ -15,6 +15,7 @@ Route::get('/login', [SessionController::class, 'create'])->name('login');
 Route::post('/login', [SessionController::class, 'store'])->middleware('throttle:5,1')->name('login.store');
 Route::post('/logout', [SessionController::class, 'destroy'])->middleware('auth')->name('logout');
 Route::get('/control-center', fn () => view('control-center'))->name('control-center');
+Route::get('/security', fn () => view('security'))->name('security');
 
 Route::middleware('auth')->group(function () {
     Route::get('/workspace', [WorkspaceController::class, 'index'])->name('workspace');
