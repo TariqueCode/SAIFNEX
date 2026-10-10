@@ -38,6 +38,15 @@ class NetworkFoundationTest extends TestCase
         $this->assertTrue($network->devices->first()->is($device));
     }
 
+    public function test_database_seeder_does_not_create_a_predictable_test_login(): void
+    {
+        $this->seed();
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'test@example.com',
+        ]);
+    }
+
     public function test_network_roles_and_permissions_are_scoped_through_the_pivot(): void
     {
         $role = Role::create([
