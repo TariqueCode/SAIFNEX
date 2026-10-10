@@ -1,8 +1,8 @@
 <?php
 
-namespace App\\Services\\Policy;
+namespace App\Services\Policy;
 
-use Carbon\\CarbonImmutable;
+use Carbon\CarbonImmutable;
 
 class PolicyRuleTimeNormalizer
 {
@@ -18,7 +18,7 @@ class PolicyRuleTimeNormalizer
             }
 
             $value = (string) $data[$field];
-            $hasExplicitTimezone = preg_match('/(?:Z|[+-]\\d{2}:?\\d{2})$/i', $value) === 1;
+            $hasExplicitTimezone = preg_match('/(?:Z|[+-]\d{2}:?\d{2})$/i', $value) === 1;
             $parsed = $hasExplicitTimezone
                 ? CarbonImmutable::parse($value)
                 : CarbonImmutable::parse($value, $timezone);
