@@ -3,6 +3,7 @@ package dnsfilter
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestEvaluateSnapshotUsesDeviceRulesAndPriority(t *testing.T) {
@@ -136,5 +137,49 @@ func TestEvaluateSnapshotRejectsUnsupportedSchemaVersion(t *testing.T) {
 	_, err := EvaluateSnapshot([]byte(`{"schema_version":2,"devices":{"7":{"rules":[]}}}`), "7", "example.com", Allow)
 	if err == nil {
 		t.Fatal("expected unsupported schema_version to fail")
+	}
+}
+
+
+func TestEvaluateSnapshotEnforcesScheduleAndExpiryAtRuntime(t *testing.T) {
+	snapshot := []byte(`{
+		"schema_version": 1,
+		"devices": {
+			"7": {
+				"rules": [
+					{"id": 1, "target_type": "DOMAIN", "target": "scheduled.example", "action": "BLOCK", "priority": 1, "enabled": true, "schedule_id": 12},
+					{"id": 2, "target_type": "DOMAIN", "target": "temporary.example", "action": "BLOCK", "priority": 2, "enabled": true, "expires_at": "2026-10-08T07:00:00Z"}
+				],
+				"schedules": {
+					"12": {
+						"timezone": "Asia/Dhaka",
+						"enabled": true,
+						"definition": {"days": [4], "start": "09:00", "end": "17:00"}
+					}
+				}
+			}
+		}
+	}`)
+
+	atNoonDhaka := time.Date(2026, 10, 8, 6, 0, 0, 0, time.UTC)
+	decision, err := EvaluateSnapshotAt(snapshot, "7", "scheduled.example", Allow, atNoonDhaka)
+	if err != nil || decision.Action != Block || !decision.Matched {
+		t.Fatalf("scheduled rule at noon Dhaka = %+v, %v; want BLOCK", decision, err)
+	}
+	decision, err = EvaluateSnapshotAt(snapshot, "7", "temporary.example", Allow, atNoonDhaka)
+	if err != nil || decision.Action != Block || !decision.Matched {
+		t.Fatalf("temporary rule before expiry = %+v, %v; want BLOCK", decision, err)
+	}
+
+	afterExpiry := time.Date(2026, 10, 8, 7, 0, 0, 0, time.UTC)
+	decision, err = EvaluateSnapshotAt(snapshot, "7", "temporary.example", Allow, afterExpiry)
+	if err != nil || decision.Action != Allow || decision.Matched {
+		t.Fatalf("temporary rule at expiry = %+v, %v; want default ALLOW", decision, err)
+	}
+
+	afterSchedule := time.Date(2026, 10, 8, 12, 0, 0, 0, time.UTC)
+	decision, err = EvaluateSnapshotAt(snapshot, "7", "scheduled.example", Allow, afterSchedule)
+	if err != nil || decision.Action != Allow || decision.Matched {
+		t.Fatalf("scheduled rule outside window = %+v, %v; want default ALLOW", decision, err)
 	}
 }
