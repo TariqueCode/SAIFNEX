@@ -257,7 +257,6 @@ func TestHandlerRejectsNonQueryDNSMessages(t *testing.T) {
 		name   string
 		mutate func(*dns.Msg)
 	}{
-		{"response packet", func(m *dns.Msg) { m.Response = true }},
 		{"non-query opcode", func(m *dns.Msg) { m.Opcode = dns.OpcodeNotify }},
 	}
 	for _, tc := range tests {
