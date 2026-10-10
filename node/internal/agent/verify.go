@@ -10,9 +10,14 @@ import (
 	"fmt"
 )
 
+const supportedConfigurationSchemaVersion = 1
+
 func verifyConfiguration(c configuration, settings Settings) ([]byte, error) {
 	if c.DeploymentID <= 0 || c.Version <= 0 || c.SchemaVersion <= 0 {
 		return nil, errors.New("configuration envelope contains invalid identifiers or versions")
+	}
+	if c.SchemaVersion != supportedConfigurationSchemaVersion {
+		return nil, fmt.Errorf("unsupported configuration schema_version %d", c.SchemaVersion)
 	}
 	if c.SignatureAlgorithm != "Ed25519" {
 		return nil, fmt.Errorf("unsupported signature algorithm %q", c.SignatureAlgorithm)
