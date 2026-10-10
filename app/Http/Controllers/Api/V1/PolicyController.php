@@ -23,7 +23,7 @@ class PolicyController extends Controller
 
     public function store(Request $request, Network $network): JsonResponse
     {
-        $this->authorizeNetwork($network, 'network.manage');
+        $this->authorizeNetwork($network, 'policy.manage');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -105,7 +105,7 @@ class PolicyController extends Controller
 
     public function update(Request $request, PolicyProfile $policy): JsonResponse
     {
-        $this->authorizeNetwork($policy->network, 'network.manage');
+        $this->authorizeNetwork($policy->network, 'policy.manage');
 
         if ($policy->status === 'ACTIVE') {
             return response()->json([
