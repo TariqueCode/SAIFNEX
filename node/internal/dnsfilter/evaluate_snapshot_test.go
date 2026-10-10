@@ -40,6 +40,32 @@ func TestEvaluateSnapshotUsesDeviceRulesAndPriority(t *testing.T) {
 	}
 }
 
+func TestEvaluateSnapshotDefaultsOmittedEnabledToTrue(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"example.com","action":"BLOCK","priority":1}
+	]}}}`)
+	decision, err := EvaluateSnapshot(snapshot, "7", "example.com", Allow)
+	if err != nil {
+		t.Fatalf("EvaluateSnapshot() error = %v", err)
+	}
+	if decision.Action != Block || !decision.Matched || decision.RuleID != 1 {
+		t.Fatalf("decision = %+v, want omitted enabled field to default to enabled BLOCK rule", decision)
+	}
+}
+
+func TestEvaluateSnapshotHonorsExplicitDisabledRule(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"example.com","action":"BLOCK","priority":1,"enabled":false}
+	]}}}`)
+	decision, err := EvaluateSnapshot(snapshot, "7", "example.com", Allow)
+	if err != nil {
+		t.Fatalf("EvaluateSnapshot() error = %v", err)
+	}
+	if decision.Action != Allow || decision.Matched {
+		t.Fatalf("decision = %+v, want default ALLOW for explicitly disabled rule", decision)
+	}
+}
+
 func TestEvaluateSnapshotRejectsMissingDevice(t *testing.T) {
 	_, err := EvaluateSnapshot([]byte(`{"schema_version":1,"devices":{"7":{"rules":[]}}}`), "9", "example.com", Allow)
 	if !errors.Is(err, ErrDeviceNotFound) {
