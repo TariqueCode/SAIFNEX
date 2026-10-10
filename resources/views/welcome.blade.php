@@ -24,7 +24,7 @@
         <a class="brand" href="#top" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX — Network Intelligence" width="178" height="54" style="display:block;width:178px;height:auto;max-height:52px;object-fit:contain"></a>
         <nav class="navlinks" id="navlinks" aria-label="Main navigation">
             <a href="#platform">Platform</a><a href="#capabilities">Capabilities</a><a href="#architecture">Architecture</a><a href="#principles">Principles</a><a href="#faq">FAQ</a>
-        </nav>
+        <a href="/security">Security</a></nav>
         <div class="nav-actions">
             <button class="theme-toggle" id="themeToggle" aria-label="Switch to light theme" title="Toggle theme">☼</button>
             <a class="btn btn-primary" href="#platform">Explore platform <span aria-hidden="true">↗</span></a>
