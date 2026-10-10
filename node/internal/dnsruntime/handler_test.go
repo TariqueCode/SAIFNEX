@@ -47,6 +47,30 @@ func startDNSServer(t *testing.T, handler dns.Handler) string {
 	return pc.LocalAddr().String()
 }
 
+func startDNSTCPServer(t *testing.T, handler dns.Handler) string {
+	t.Helper()
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	server := &dns.Server{Listener: listener, Handler: handler}
+	go func() { _ = server.ActivateAndServe() }()
+	t.Cleanup(func() { _ = server.Shutdown() })
+	return listener.Addr().String()
+}
+
+func queryTCP(t *testing.T, address, name string) *dns.Msg {
+	t.Helper()
+	msg := new(dns.Msg)
+	msg.SetQuestion(dns.Fqdn(name), dns.TypeA)
+	client := &dns.Client{Net: "tcp", Timeout: time.Second}
+	response, _, err := client.Exchange(msg, address)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return response
+}
+
 func query(t *testing.T, address, name string) *dns.Msg {
 	t.Helper()
 	msg := new(dns.Msg)
@@ -115,6 +139,34 @@ func TestHandlerForwardsAllowedDomain(t *testing.T) {
 	}
 	if got := forwarded.Load(); got != 1 {
 		t.Fatalf("upstream received %d requests, want 1", got)
+	}
+}
+
+func TestHandlerServesDNSOverTCP(t *testing.T) {
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		reply.Answer = []dns.RR{&dns.A{
+			Hdr: dns.RR_Header{Name: req.Question[0].Name, Rrtype: dns.TypeA, Class: dns.ClassINET, Ttl: 60},
+			A: net.ParseIP("192.0.2.43").To4(),
+		}}
+		_ = w.WriteMsg(reply)
+	}))
+	snapshot := testSnapshot(t, nil)
+	handler, err := NewHandler(Config{
+		DeviceID: "device-1", Upstream: upstream, DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSTCPServer(t, handler)
+	response := queryTCP(t, listener, "tcp.example")
+	if response.Rcode != dns.RcodeSuccess || len(response.Answer) != 1 {
+		t.Fatalf("unexpected TCP DNS response: rcode=%d answers=%d", response.Rcode, len(response.Answer))
+	}
+	if got := response.Answer[0].(*dns.A).A.String(); got != "192.0.2.43" {
+		t.Fatalf("answer = %s, want 192.0.2.43", got)
 	}
 }
 
