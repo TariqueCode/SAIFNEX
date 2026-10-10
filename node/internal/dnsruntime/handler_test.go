@@ -138,6 +138,25 @@ func TestHandlerFailsClosedWhenSnapshotUnavailable(t *testing.T) {
 	}
 }
 
+func TestHandlerFailsClosedWhenDeviceHasNoPolicyEntry(t *testing.T) {
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		t.Error("upstream must not be called when the device has no policy entry")
+	}))
+	snapshot := testSnapshot(t, nil) // Contains device-1 only.
+	handler, err := NewHandler(Config{
+		DeviceID: "device-2", Upstream: upstream, DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSServer(t, handler)
+	response := query(t, listener, "example.com")
+	if response.Rcode != dns.RcodeServerFailure {
+		t.Fatalf("rcode = %d, want SERVFAIL for missing device policy", response.Rcode)
+	}
+}
+
 func TestNewHandlerRejectsInvalidConfiguration(t *testing.T) {
 	base := Config{
 		DeviceID: "device-1", Upstream: "127.0.0.1:53", DefaultAction: dnsfilter.Allow,
