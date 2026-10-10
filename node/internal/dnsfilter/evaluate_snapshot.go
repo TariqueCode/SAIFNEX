@@ -7,12 +7,15 @@ import (
 	"sort"
 )
 
+const supportedSnapshotSchemaVersion = 1
+
 // ErrDeviceNotFound indicates that a verified configuration has no policy entry
 // for the requested device. Callers must not silently substitute another device.
 var ErrDeviceNotFound = errors.New("device not found in configuration snapshot")
 
 type snapshotDocument struct {
-	Devices map[string]struct {
+	SchemaVersion *int `json:"schema_version"`
+	Devices       map[string]struct {
 		Rules *[]Rule `json:"rules"`
 	} `json:"devices"`
 }
@@ -21,9 +24,9 @@ type snapshotDocument struct {
 // configuration snapshot. Signature/hash verification remains the node agent's
 // responsibility and must happen before this function is called.
 //
-// The default action is explicit because the current control-plane snapshot
-// schema does not define a universal DNS default. Rules are sorted by ascending
-// priority and then ascending ID to make evaluation deterministic.
+// The evaluator accepts only the explicitly supported snapshot schema version.
+// Rules are sorted by ascending priority and then ascending ID to make evaluation
+// deterministic. A missing schema version is not treated as the current version.
 func EvaluateSnapshot(snapshot []byte, deviceID string, query string, defaultAction Action) (Decision, error) {
 	if deviceID == "" {
 		return Decision{}, fmt.Errorf("%w: empty device id", ErrDeviceNotFound)
@@ -32,6 +35,12 @@ func EvaluateSnapshot(snapshot []byte, deviceID string, query string, defaultAct
 	var document snapshotDocument
 	if err := json.Unmarshal(snapshot, &document); err != nil {
 		return Decision{}, fmt.Errorf("decode configuration snapshot: %w", err)
+	}
+	if document.SchemaVersion == nil {
+		return Decision{}, errors.New("configuration snapshot has no schema_version")
+	}
+	if *document.SchemaVersion != supportedSnapshotSchemaVersion {
+		return Decision{}, fmt.Errorf("unsupported configuration snapshot schema_version %d", *document.SchemaVersion)
 	}
 	if document.Devices == nil {
 		return Decision{}, errors.New("configuration snapshot has no devices map")
