@@ -66,6 +66,15 @@ func TestEvaluateSnapshotHonorsExplicitDisabledRule(t *testing.T) {
 	}
 }
 
+func TestEvaluateSnapshotRejectsInvalidEnabledField(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"example.com","action":"BLOCK","priority":1,"enabled":"yes"}
+	]}}}`)
+	if _, err := EvaluateSnapshot(snapshot, "7", "example.com", Allow); err == nil {
+		t.Fatal("expected non-boolean enabled field to be rejected")
+	}
+}
+
 func TestEvaluateSnapshotRejectsMissingDevice(t *testing.T) {
 	_, err := EvaluateSnapshot([]byte(`{"schema_version":1,"devices":{"7":{"rules":[]}}}`), "9", "example.com", Allow)
 	if !errors.Is(err, ErrDeviceNotFound) {
