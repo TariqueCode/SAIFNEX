@@ -26,6 +26,12 @@ Copy `saifnex-node.example.json` to a local file outside version control. Replac
 
 The control-plane URL must be HTTPS. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
 
+## DNS policy evaluator milestone
+
+`internal/dnsfilter` now contains a deterministic, standalone domain-rule evaluator with unit tests. It normalizes ASCII DNS names, supports explicit `DOMAIN_EXACT` and `DOMAIN_SUFFIX` matches, honors the caller-provided priority order, skips disabled rules, and rejects unsupported enabled rule types/actions rather than silently misapplying them. The caller must supply an explicit `ALLOW` or `BLOCK` default action.
+
+**Important:** this evaluator is not yet wired into the node runtime, does not listen on DNS ports, and does not intercept or filter live traffic. The runtime still only verifies and persists signed configuration snapshots. Before activation can enforce policies, the control-plane schema/compiler and runtime adapter must agree on target types, precedence, default behavior, schedule handling, and rollback semantics, followed by DNS protocol and security tests.
+
 ## Activation behavior
 
 - Verifies the SHA-256 hash of Laravel-compatible canonical JSON.
