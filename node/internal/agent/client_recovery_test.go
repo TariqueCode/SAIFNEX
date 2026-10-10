@@ -2,6 +2,9 @@ package agent
 
 import (
 	"bytes"
+	"context"
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -27,10 +30,17 @@ func TestFailedConfigurationUpdatePreservesPreviousActiveSnapshot(t *testing.T) 
 		Version:            4,
 		SchemaVersion:      1,
 		Snapshot:           json.RawMessage(`{"schema_version":1,"network":{"id":"42","timezone":"Asia/Dhaka"},"devices":{}}`),
-		SnapshotHash:       HashText(`{"schema_version":1,"network":{"id":"42","timezone":"Asia/Dhaka"},"devices":{}}`),
+		SnapshotHash:       "",
 		Signature:          "not-a-valid-signature",
 		SignatureAlgorithm: "Ed25519",
 	}
+
+	canonical, err := canonicalJSON(badConfig.Snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	sum := sha256.Sum256(canonical)
+	badConfig.SnapshotHash = hex.EncodeToString(sum[:])
 
 	var ackStatus string
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -64,7 +74,7 @@ func TestFailedConfigurationUpdatePreservesPreviousActiveSnapshot(t *testing.T) 
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := client.cycle(t.Context()); err == nil {
+	if err := client.cycle(context.Background()); err == nil {
 		t.Fatal("expected invalid configuration deployment to fail")
 	}
 	if ackStatus != "FAILED" {
