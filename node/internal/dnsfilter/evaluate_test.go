@@ -61,6 +61,16 @@ func TestEvaluateSkipsDisabledRules(t *testing.T) {
 	}
 }
 
+func TestEvaluateSkipsKnownNonDomainRules(t *testing.T) {
+	decision, err := Evaluate("example.com", []Rule{
+		{ID: 1, TargetType: "IP", Target: "192.0.2.1", Action: "BLOCK", Enabled: true},
+		{ID: 2, TargetType: "DOMAIN", Target: "example.com", Action: "ALLOW", Enabled: true},
+	}, Block)
+	if err != nil || decision.Action != Allow || !decision.Matched || decision.RuleID != 2 {
+		t.Fatalf("non-domain rule should not interfere with DNS decision: %+v, %v", decision, err)
+	}
+}
+
 func TestEvaluateFailsClosedOnUnsupportedEnabledRule(t *testing.T) {
 	_, err := Evaluate("example.com", []Rule{
 		{ID: 4, TargetType: "APP", Target: "example.com", Action: "BLOCK", Enabled: true},
