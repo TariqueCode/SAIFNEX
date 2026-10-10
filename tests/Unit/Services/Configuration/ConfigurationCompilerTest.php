@@ -131,29 +131,25 @@ class ConfigurationCompilerTest extends TestCase
 
         $compiler = app(ConfigurationCompiler::class);
 
-        $atNoon = $compiler->compile(
-            $network,
-            CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Dhaka')
-        );
-        $noonRules = $atNoon->snapshot['devices'][(string) $device->id]['rules'];
-        $this->assertSame(
-            ['scheduled.example', 'temporary.example'],
-            array_column($noonRules, 'target')
-        );
-
-        $atTwoPm = $compiler->compile(
-            $network,
-            CarbonImmutable::parse('2026-10-08 14:00:00', 'Asia/Dhaka')
-        );
-        $twoPmRules = $atTwoPm->snapshot['devices'][(string) $device->id]['rules'];
-        $this->assertSame(['scheduled.example'], array_column($twoPmRules, 'target'));
-
-        $atSixPm = $compiler->compile(
+        $compiled = $compiler->compile(
             $network,
             CarbonImmutable::parse('2026-10-08 18:00:00', 'Asia/Dhaka')
         );
-        $sixPmRules = $atSixPm->snapshot['devices'][(string) $device->id]['rules'];
-        $this->assertSame([], $sixPmRules);
+        $deviceSnapshot = $compiled->snapshot['devices'][(string) $device->id];
+
+        // Keep timing metadata in the signed snapshot so the DNS runtime can
+        // enforce boundaries without waiting for a control-plane recompilation.
+        $this->assertSame(
+            ['scheduled.example', 'temporary.example'],
+            array_column($deviceSnapshot['rules'], 'target')
+        );
+        $scheduledRule = collect($deviceSnapshot['rules'])->firstWhere('target', 'scheduled.example');
+        $this->assertSame($schedule->id, $scheduledRule['schedule_id']);
+        $this->assertSame('Asia/Dhaka', $deviceSnapshot['schedules'][(string) $schedule->id]['timezone']);
+        $this->assertSame(
+            '2026-10-08T07:00:00+00:00',
+            collect($deviceSnapshot['rules'])->firstWhere('target', 'temporary.example')['expires_at']
+        );
     }
 
 }
