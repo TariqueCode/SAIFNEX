@@ -1,14 +1,14 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\Network;
-use App\\Models\\PolicyProfile;
-use App\\Services\\Access\\NetworkAccess;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Validation\\Rule;
-use Illuminate\\View\\View;
+use App\Models\Network;
+use App\Models\PolicyProfile;
+use App\Services\Access\NetworkAccess;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Validation\Rule;
+use Illuminate\View\View;
 
 class WorkspacePolicyRuleController extends Controller
 {
