@@ -13,12 +13,12 @@
 </head>
 <body>
 <aside class="story">
-<a href="/" class="brand"><svg class="mark" viewBox="0 0 42 46" fill="none" aria-hidden="true"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg><span>SAIFNEX<small>NETWORK INTELLIGENCE</small></span></a>
+<a href="/" class="brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX — Network Intelligence" width="220" height="74" style="display:block;width:220px;max-width:100%;height:auto;object-fit:contain"></a>
 <div class="story-main"><div class="eyebrow">Control with clarity</div><h1>Your network.<br><span>Your decisions.</span></h1><p>Sign in to the SAIFNEX workspace to continue toward a simpler, more transparent way to manage network policy and edge operations.</p><div class="points"><div class="point"><span class="check">✓</span> Policy-driven network management</div><div class="point"><span class="check">✓</span> Trusted configuration lifecycle</div><div class="point"><span class="check">✓</span> Clear separation of control and execution</div></div></div>
 <div class="story-foot">© {{ date('Y') }} SAIFNEX · Built for clarity, designed for trust.</div>
 </aside>
 <main class="form-side"><div class="form-wrap">
-<a href="/" class="mobile-brand"><svg class="mark" viewBox="0 0 42 46" fill="none" aria-hidden="true"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg>SAIFNEX</a>
+<a href="/" class="mobile-brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="170" height="58" style="display:block;width:170px;max-width:100%;height:auto;object-fit:contain"></a>
 <div class="eyebrow" style="margin-bottom:12px">Welcome back</div><h2>Sign in to SAIFNEX</h2><p class="intro">Use the account credentials provided by your platform administrator.</p>
 @if (session('status'))<div class="status" role="status">{{ session('status') }}</div>@endif
 @if ($errors->has('email'))<div class="status" role="alert">{{ $errors->first('email') }}</div>@endif
