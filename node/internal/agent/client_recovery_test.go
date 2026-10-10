@@ -93,6 +93,7 @@ func TestFailedConfigurationUpdatePreservesPreviousActiveSnapshot(t *testing.T) 
 func TestActiveVersionRequiresVerifiedPersistedSnapshot(t *testing.T) {
 	stateDir := t.TempDir()
 	settings := writeSignedActiveConfig(t, stateDir, false)
+	settings.StateDir = stateDir
 	client := &Client{settings: settings}
 	if got := client.activeVersion(); got != 3 {
 		t.Fatalf("activeVersion() = %d, want 3 for a verified snapshot", got)
