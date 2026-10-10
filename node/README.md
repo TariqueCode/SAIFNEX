@@ -36,7 +36,7 @@ The control-plane URL must be HTTPS. The runtime does not disable TLS verificati
 
 - Verifies the SHA-256 hash of Laravel-compatible canonical JSON.
 - Verifies Ed25519 signatures against the configured public key.
-- Checks a snapshot `network_id` when that field is present.
+- Requires matching snapshot/envelope schema versions and validates the network binding against the enrolled network; missing or conflicting network identity is rejected.
 - Writes `active-config.json` using a temporary file, fsync, and atomic rename.
 - Reports FAILED when verification or persistence fails; reports ACTIVE only after durable file activation.
 - Retains the previous active file if a new activation fails.
