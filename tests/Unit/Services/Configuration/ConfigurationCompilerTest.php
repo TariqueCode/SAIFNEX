@@ -64,4 +64,86 @@ class ConfigurationCompilerTest extends TestCase
             $compiled->snapshot['devices'][(string) $device->id]['rules'][0]['action']
         );
     }
+
+    public function test_compiler_filters_schedule_and_expiry_rules_at_the_requested_instant(): void
+    {
+        $user = User::factory()->create();
+        $network = Network::create([
+            'owner_id' => $user->id,
+            'name' => 'Timed Compiler Test',
+            'type' => 'HOME',
+            'status' => 'ACTIVE',
+            'timezone' => 'Asia/Dhaka',
+        ]);
+        $device = Device::create([
+            'network_id' => $network->id,
+            'name' => 'Timed Compiler Phone',
+            'type' => 'PHONE',
+            'identifier' => 'timed-compiler-phone',
+            'status' => 'ACTIVE',
+        ]);
+        $profile = PolicyProfile::create([
+            'network_id' => $network->id,
+            'name' => 'Timed Compiler Policy',
+            'key' => 'timed-compiler-policy',
+            'source' => 'CUSTOM',
+            'status' => 'DRAFT',
+            'is_default' => true,
+            'is_template' => false,
+        ]);
+        $schedule = Schedule::create([
+            'network_id' => $network->id,
+            'name' => 'Thursday daytime',
+            'timezone' => 'Asia/Dhaka',
+            'definition' => [
+                'days' => [4],
+                'start' => '09:00',
+                'end' => '17:00',
+            ],
+            'enabled' => true,
+        ]);
+
+        $profile->rules()->create([
+            'schedule_id' => $schedule->id,
+            'target_type' => 'DOMAIN',
+            'target' => 'scheduled.example',
+            'action' => 'BLOCK',
+            'priority' => 10,
+        ]);
+        $profile->rules()->create([
+            'target_type' => 'DOMAIN',
+            'target' => 'temporary.example',
+            'action' => 'BLOCK',
+            'priority' => 20,
+            'expires_at' => CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka'),
+        ]);
+
+        app(PolicyVersionService::class)->publish($profile, $user->id);
+        $compiler = app(ConfigurationCompiler::class);
+
+        $atNoon = $compiler->compile(
+            $network,
+            CarbonImmutable::parse('2026-10-08 12:00:00', 'Asia/Dhaka')
+        );
+        $noonRules = $atNoon->snapshot['devices'][(string) $device->id]['rules'];
+        $this->assertSame(
+            ['scheduled.example', 'temporary.example'],
+            array_column($noonRules, 'target')
+        );
+
+        $atTwoPm = $compiler->compile(
+            $network,
+            CarbonImmutable::parse('2026-10-08 14:00:00', 'Asia/Dhaka')
+        );
+        $twoPmRules = $atTwoPm->snapshot['devices'][(string) $device->id]['rules'];
+        $this->assertSame(['scheduled.example'], array_column($twoPmRules, 'target'));
+
+        $atSixPm = $compiler->compile(
+            $network,
+            CarbonImmutable::parse('2026-10-08 18:00:00', 'Asia/Dhaka')
+        );
+        $sixPmRules = $atSixPm->snapshot['devices'][(string) $device->id]['rules'];
+        $this->assertSame([], $sixPmRules);
+    }
+
 }
