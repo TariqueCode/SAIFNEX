@@ -152,4 +152,72 @@ class ConfigurationCompilerTest extends TestCase
         );
     }
 
+
+    public function test_device_policy_assignment_is_inactive_at_its_exact_expiry_instant(): void
+    {
+        $user = User::factory()->create();
+        $network = Network::create([
+            'owner_id' => $user->id,
+            'name' => 'Assignment Expiry Boundary',
+            'type' => 'HOME',
+            'status' => 'ACTIVE',
+            'timezone' => 'Asia/Dhaka',
+        ]);
+        $device = Device::create([
+            'network_id' => $network->id,
+            'name' => 'Expiry Boundary Device',
+            'type' => 'PHONE',
+            'identifier' => 'expiry-boundary-device',
+            'status' => 'ACTIVE',
+        ]);
+
+        $defaultProfile = PolicyProfile::create([
+            'network_id' => $network->id,
+            'name' => 'Default Boundary Policy',
+            'key' => 'default-boundary-policy',
+            'source' => 'CUSTOM',
+            'status' => 'DRAFT',
+            'is_default' => true,
+            'is_template' => false,
+        ]);
+        $defaultProfile->rules()->create([
+            'target_type' => 'DOMAIN',
+            'target' => 'default.example',
+            'action' => 'ALLOW',
+            'priority' => 10,
+        ]);
+
+        $assignedProfile = PolicyProfile::create([
+            'network_id' => $network->id,
+            'name' => 'Assigned Boundary Policy',
+            'key' => 'assigned-boundary-policy',
+            'source' => 'CUSTOM',
+            'status' => 'DRAFT',
+            'is_default' => false,
+            'is_template' => false,
+        ]);
+        $assignedProfile->rules()->create([
+            'target_type' => 'DOMAIN',
+            'target' => 'assigned.example',
+            'action' => 'BLOCK',
+            'priority' => 10,
+        ]);
+
+        app(PolicyVersionService::class)->publish($defaultProfile, $user->id);
+        app(PolicyVersionService::class)->publish($assignedProfile, $user->id);
+        $device->policyAssignments()->create([
+            'profile_id' => $assignedProfile->id,
+            'expires_at' => CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka')->utc(),
+        ]);
+
+        $compiled = app(ConfigurationCompiler::class)->compile(
+            $network,
+            CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka')
+        );
+        $deviceSnapshot = $compiled->snapshot['devices'][(string) $device->id];
+
+        $this->assertSame($defaultProfile->id, $deviceSnapshot['profile_id']);
+        $this->assertSame(['default.example'], array_column($deviceSnapshot['rules'], 'target'));
+    }
+
 }

@@ -46,7 +46,7 @@ class ConfigurationCompiler
                             return false;
                         }
 
-                        if ($assignment->expires_at && $assignment->expires_at->lt($at)) {
+                        if ($assignment->expires_at && $assignment->expires_at->lte($at)) {
                             return false;
                         }
 
