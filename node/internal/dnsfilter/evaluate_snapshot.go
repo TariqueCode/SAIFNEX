@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"sort"
+	"time"
 )
 
 const supportedSnapshotSchemaVersion = 1
@@ -17,6 +18,7 @@ type snapshotDocument struct {
 	SchemaVersion *int `json:"schema_version"`
 	Devices       map[string]struct {
 		Rules *[]Rule `json:"rules"`
+		Schedules map[string]Schedule `json:"schedules"`
 	} `json:"devices"`
 }
 
@@ -28,6 +30,12 @@ type snapshotDocument struct {
 // Rules are sorted by ascending priority and then ascending ID to make evaluation
 // deterministic. A missing schema version is not treated as the current version.
 func EvaluateSnapshot(snapshot []byte, deviceID string, query string, defaultAction Action) (Decision, error) {
+	return EvaluateSnapshotAt(snapshot, deviceID, query, defaultAction, time.Now().UTC())
+}
+
+// EvaluateSnapshotAt evaluates a signed snapshot at an explicit instant, useful
+// for deterministic tests and schedule boundary verification.
+func EvaluateSnapshotAt(snapshot []byte, deviceID string, query string, defaultAction Action, at time.Time) (Decision, error) {
 	if deviceID == "" {
 		return Decision{}, fmt.Errorf("%w: empty device id", ErrDeviceNotFound)
 	}
@@ -63,5 +71,5 @@ func EvaluateSnapshot(snapshot []byte, deviceID string, query string, defaultAct
 		return rules[i].Priority < rules[j].Priority
 	})
 
-	return Evaluate(query, rules, defaultAction)
+	return EvaluateAt(query, rules, defaultAction, at, device.Schedules)
 }
