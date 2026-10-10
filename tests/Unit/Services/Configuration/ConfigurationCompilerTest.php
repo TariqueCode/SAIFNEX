@@ -120,7 +120,15 @@ class ConfigurationCompilerTest extends TestCase
             'expires_at' => CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka'),
         ]);
 
-        app(PolicyVersionService::class)->publish($profile, $user->id);
+        $published = app(PolicyVersionService::class)->publish($profile, $user->id);
+        $temporaryRule = collect($published->snapshot['rules'])->firstWhere('target', 'temporary.example');
+        $this->assertNotNull($temporaryRule['expires_at'] ?? null);
+        $this->assertTrue(
+            CarbonImmutable::parse($temporaryRule['expires_at'])->equalTo(
+                CarbonImmutable::parse('2026-10-08 13:00:00', 'Asia/Dhaka')
+            )
+        );
+
         $compiler = app(ConfigurationCompiler::class);
 
         $atNoon = $compiler->compile(
