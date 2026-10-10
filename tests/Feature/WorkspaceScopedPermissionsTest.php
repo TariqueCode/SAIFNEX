@@ -76,6 +76,28 @@ class WorkspaceScopedPermissionsTest extends TestCase
         ]);
     }
 
+    public function test_device_reader_can_view_nodes_but_cannot_enroll_one(): void
+    {
+        [, $reader, $network] = $this->networkWithMember('device.read');
+
+        $this->actingAs($reader)
+            ->get(route('workspace.networks.nodes.index', $network->id))
+            ->assertOk();
+
+        $this->actingAs($reader)
+            ->post(route('workspace.networks.nodes.store', $network->id), [
+                'name' => 'Unauthorized Node',
+                'type' => 'DNS',
+                'region' => 'Asia',
+            ])
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('network_nodes', [
+            'network_id' => $network->id,
+            'name' => 'Unauthorized Node',
+        ]);
+    }
+
     /** @return array{0: User, 1: User, 2: Network} */
     private function networkWithMember(string $permissionKey): array
     {
