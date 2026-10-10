@@ -33,6 +33,7 @@ func main() {
 	defer stop()
 
 	var udpServer, tcpServer *dns.Server
+	dnsErrors := make(chan error, 2)
 	if cfg.DNSEnabled {
 		action := dnsfilter.Action(cfg.DNSDefaultAction)
 		handler, err := dnsruntime.NewHandler(dnsruntime.Config{
@@ -59,8 +60,8 @@ func main() {
 		}
 		udpServer = &dns.Server{PacketConn: packetConn, Handler: handler}
 		tcpServer = &dns.Server{Listener: tcpListener, Handler: handler}
-		go serveDNS(ctx, "UDP", udpServer)
-		go serveDNS(ctx, "TCP", tcpServer)
+		go serveDNS(ctx, stop, "UDP", udpServer, dnsErrors)
+		go serveDNS(ctx, stop, "TCP", tcpServer, dnsErrors)
 		log.Printf("DNS policy listener enabled on %s (UDP/TCP); device=%s upstream=%s", cfg.DNSListenAddress, cfg.DNSDeviceID, cfg.DNSUpstream)
 	}
 
@@ -68,8 +69,9 @@ func main() {
 	if err != nil {
 		log.Fatalf("initialize runtime: %v", err)
 	}
-	if err := client.Run(ctx); err != nil && !errors.Is(err, context.Canceled) {
-		log.Fatalf("runtime stopped: %v", err)
+	runErr := client.Run(ctx)
+	if runErr != nil && !errors.Is(runErr, context.Canceled) {
+		log.Printf("runtime stopped: %v", runErr)
 	}
 	if udpServer != nil {
 		_ = udpServer.Shutdown()
@@ -77,11 +79,24 @@ func main() {
 	if tcpServer != nil {
 		_ = tcpServer.Shutdown()
 	}
+	select {
+	case dnsErr := <-dnsErrors:
+		log.Printf("DNS runtime failed; node is stopping to avoid silently running without policy enforcement: %v", dnsErr)
+		os.Exit(1)
+	default:
+	}
+	if runErr != nil && !errors.Is(runErr, context.Canceled) {
+		os.Exit(1)
+	}
 }
 
-func serveDNS(ctx context.Context, protocol string, server *dns.Server) {
+func serveDNS(ctx context.Context, stop context.CancelFunc, protocol string, server *dns.Server, failures chan<- error) {
 	if err := server.ActivateAndServe(); err != nil && ctx.Err() == nil {
-		log.Printf("DNS %s server stopped: %v", protocol, err)
+		select {
+		case failures <- errors.New("DNS " + protocol + " server stopped: " + err.Error()):
+		default:
+		}
+		stop()
 	}
 }
 
