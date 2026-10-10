@@ -80,6 +80,22 @@ func TestEvaluateFailsClosedOnUnsupportedEnabledRule(t *testing.T) {
 	}
 }
 
+func TestEvaluateOnlyRejectsUnsupportedActionWhenRuleMatches(t *testing.T) {
+	decision, err := Evaluate("safe.example.com", []Rule{
+		{ID: 1, TargetType: "DOMAIN", Target: "blocked.example.com", Action: "WARN", Enabled: true},
+	}, Allow)
+	if err != nil || decision.Action != Allow || decision.Matched {
+		t.Fatalf("non-matching unsupported action should not disrupt this query: %+v, %v", decision, err)
+	}
+
+	_, err = Evaluate("blocked.example.com", []Rule{
+		{ID: 1, TargetType: "DOMAIN", Target: "blocked.example.com", Action: "WARN", Enabled: true},
+	}, Allow)
+	if !errors.Is(err, ErrUnsupportedRule) {
+		t.Fatalf("matching unsupported action error = %v, want ErrUnsupportedRule", err)
+	}
+}
+
 func TestEvaluateRejectsInvalidDefaultAction(t *testing.T) {
 	_, err := Evaluate("example.com", nil, Action("WARN"))
 	if !errors.Is(err, ErrUnsupportedRule) {
