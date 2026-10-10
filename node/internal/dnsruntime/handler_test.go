@@ -240,6 +240,42 @@ func TestMatchesQuestionRejectsMismatchedDNSMetadata(t *testing.T) {
 	}
 }
 
+
+func TestHandlerRejectsNonQueryDNSMessages(t *testing.T) {
+	snapshot := testSnapshot(t, nil)
+	handler, err := NewHandler(Config{
+		DeviceID: "device-1", Upstream: "127.0.0.1:9", DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSServer(t, handler)
+	client := &dns.Client{Net: "udp", Timeout: time.Second}
+
+	tests := []struct {
+		name   string
+		mutate func(*dns.Msg)
+	}{
+		{"response packet", func(m *dns.Msg) { m.Response = true }},
+		{"non-query opcode", func(m *dns.Msg) { m.Opcode = dns.OpcodeNotify }},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			request := new(dns.Msg)
+			request.SetQuestion("example.com.", dns.TypeA)
+			tc.mutate(request)
+			response, _, err := client.Exchange(request, listener)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if response.Rcode != dns.RcodeFormatError {
+				t.Fatalf("rcode = %d, want FORMERR", response.Rcode)
+			}
+		})
+	}
+}
+
 func TestHandlerRejectsUpstreamResponseForDifferentQuestion(t *testing.T) {
 	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := new(dns.Msg)
