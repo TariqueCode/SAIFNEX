@@ -3,6 +3,9 @@
 namespace Tests\Feature;
 
 use App\Models\Network;
+use App\Models\NetworkMember;
+use App\Models\Permission;
+use App\Models\Role;
 use App\Models\PolicyProfile;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -92,6 +95,57 @@ class WorkspaceNetworkDetailTest extends TestCase
             'key' => 'guest-access-2',
             'name' => 'Guest Access',
         ]);
+    }
+
+    public function test_active_viewer_can_read_network_but_cannot_create_policy(): void
+    {
+        $owner = User::factory()->create();
+        $viewer = User::factory()->create();
+        $network = $this->createNetwork($owner, 'Shared Network');
+        $role = Role::create(['key' => 'test_viewer', 'name' => 'Viewer', 'is_system' => false]);
+        $permission = Permission::create(['key' => 'network.read', 'name' => 'View network']);
+        $role->permissions()->attach($permission);
+        NetworkMember::create([
+            'network_id' => $network->id,
+            'user_id' => $viewer->id,
+            'role_id' => $role->id,
+            'status' => 'ACTIVE',
+            'joined_at' => now(),
+        ]);
+
+        $this->actingAs($viewer)
+            ->get(route('workspace.networks.show', $network->id))
+            ->assertOk()
+            ->assertSee('Shared Network');
+
+        $this->actingAs($viewer)
+            ->post(route('workspace.networks.policies.store', $network->id), ['name' => 'Unauthorized policy'])
+            ->assertNotFound();
+
+        $this->assertDatabaseMissing('policy_profiles', [
+            'network_id' => $network->id,
+            'name' => 'Unauthorized policy',
+        ]);
+    }
+
+    public function test_inactive_network_membership_does_not_grant_access(): void
+    {
+        $owner = User::factory()->create();
+        $member = User::factory()->create();
+        $network = $this->createNetwork($owner, 'Inactive Member Network');
+        $role = Role::create(['key' => 'inactive_viewer', 'name' => 'Viewer', 'is_system' => false]);
+        $permission = Permission::create(['key' => 'network.read', 'name' => 'View network']);
+        $role->permissions()->attach($permission);
+        NetworkMember::create([
+            'network_id' => $network->id,
+            'user_id' => $member->id,
+            'role_id' => $role->id,
+            'status' => 'SUSPENDED',
+        ]);
+
+        $this->actingAs($member)
+            ->get(route('workspace.networks.show', $network->id))
+            ->assertNotFound();
     }
 
     private function createNetwork(User $owner, string $name): Network
