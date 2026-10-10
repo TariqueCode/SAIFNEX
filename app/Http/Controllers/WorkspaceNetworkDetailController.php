@@ -1,20 +1,19 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\Network;
-use App\Models\PolicyProfile;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\View\View;
+use App\\Models\\PolicyProfile;
+use App\\Services\\Access\\NetworkAccess;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Support\\Str;
+use Illuminate\\View\\View;
 
 class WorkspaceNetworkDetailController extends Controller
 {
     public function show(Request $request, int $networkId): View
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'network.read');
 
         $network->load([
             'nodes' => fn ($query) => $query->latest(),
@@ -27,7 +26,7 @@ class WorkspaceNetworkDetailController extends Controller
 
     public function storePolicy(Request $request, int $networkId): RedirectResponse
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'policy.manage');
 
         $validated = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -55,12 +54,5 @@ class WorkspaceNetworkDetailController extends Controller
         return redirect()
             ->route('workspace.networks.show', $network->id)
             ->with('status', 'Draft policy profile created. Add rules and validate it before publishing.');
-    }
-
-    private function ownedNetwork(Request $request, int $networkId): Network
-    {
-        return Network::query()
-            ->where('owner_id', $request->user()->id)
-            ->findOrFail($networkId);
     }
 }
