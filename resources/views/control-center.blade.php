@@ -17,7 +17,7 @@
 <body>
 <div class="app">
 <aside class="sidebar">
-<a href="/" class="brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="190" height="64" style="display:block;width:190px;max-width:100%;height:auto;object-fit:contain"></a>
+<a href="/" class="brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="190" height="64" style="display:block;width:190px;max-width:100%;height:auto;object-fit:contain"><span style="position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0">CONTROL CENTER</span></a>
 <div class="navlabel">Workspace</div>
 <a class="navitem active" href="/control-center"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="8" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="15" width="7" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>Overview</a>
 <a class="navitem" href="#networks"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="19" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="19" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="m10.8 7.2-4.5 9.5m6.9-9.5 4.5 9.5M7.5 19h9" stroke="currentColor" stroke-width="1.6"/></svg>Networks</a>
