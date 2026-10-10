@@ -34,24 +34,30 @@ class ScheduleResolver
         $start = $definition['start'] ?? '00:00';
         $end = $definition['end'] ?? '23:59:59';
 
-        if (!in_array($time->isoWeekday(), $days, true)) {
-            return false;
-        }
-
         $current = $time->format('H:i:s');
         $start = strlen($start) === 5 ? $start . ':00' : $start;
         $end = strlen($end) === 5 ? $end . ':00' : $end;
+        $weekday = $time->isoWeekday();
 
         if ($start === $end) {
-            return true;
+            return in_array($weekday, $days, true);
         }
 
         if ($start < $end) {
-            return $current >= $start && $current <= $end;
+            return in_array($weekday, $days, true)
+                && $current >= $start
+                && $current <= $end;
         }
 
-        // Overnight window, e.g. 22:00 -> 06:00.
-        return $current >= $start || $current <= $end;
+        // For overnight windows, the after-midnight portion belongs to the
+        // day on which the window started (e.g. Thursday 22:00 -> Friday 06:00).
+        if ($current >= $start) {
+            return in_array($weekday, $days, true);
+        }
+
+        $previousWeekday = $weekday === 1 ? 7 : $weekday - 1;
+
+        return $current <= $end && in_array($previousWeekday, $days, true);
     }
 
     /**
