@@ -19,6 +19,7 @@ type SnapshotProvider func(context.Context) ([]byte, error)
 // Config controls a single-device DNS forwarding handler.
 type Config struct {
 	DeviceID      string
+	ClientDeviceMap map[string]string
 	Upstream      string
 	DefaultAction dnsfilter.Action
 	Timeout       time.Duration
@@ -29,6 +30,7 @@ type Config struct {
 // allowed DNS messages to the configured upstream resolver.
 type Handler struct {
 	deviceID      string
+	clientDeviceMap map[string]string
 	upstream      string
 	defaultAction dnsfilter.Action
 	timeout       time.Duration
@@ -37,8 +39,16 @@ type Handler struct {
 }
 
 func NewHandler(cfg Config) (*Handler, error) {
-	if strings.TrimSpace(cfg.DeviceID) == "" {
-		return nil, errors.New("device_id is required")
+	if strings.TrimSpace(cfg.DeviceID) == "" && len(cfg.ClientDeviceMap) == 0 {
+		return nil, errors.New("device_id or client_device_map is required")
+	}
+	for clientIP, deviceID := range cfg.ClientDeviceMap {
+		if net.ParseIP(strings.TrimSpace(clientIP)) == nil {
+			return nil, fmt.Errorf("client_device_map key %q must be an IP address", clientIP)
+		}
+		if strings.TrimSpace(deviceID) == "" {
+			return nil, fmt.Errorf("client_device_map entry for %q has an empty device ID", clientIP)
+		}
 	}
 	if _, _, err := net.SplitHostPort(cfg.Upstream); err != nil {
 		return nil, fmt.Errorf("upstream must be host:port: %w", err)
@@ -54,6 +64,7 @@ func NewHandler(cfg Config) (*Handler, error) {
 	}
 	return &Handler{
 		deviceID: cfg.DeviceID,
+		clientDeviceMap: cfg.ClientDeviceMap,
 		upstream: cfg.Upstream,
 		defaultAction: cfg.DefaultAction,
 		timeout: cfg.Timeout,
@@ -82,7 +93,12 @@ func (h *Handler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 		return
 	}
 
-	decision, err := dnsfilter.EvaluateSnapshot(snapshot, h.deviceID, req.Question[0].Name, h.defaultAction)
+	deviceID, ok := h.deviceForClient(w.RemoteAddr())
+	if !ok {
+		h.writeError(w, req, dns.RcodeServerFailure)
+		return
+	}
+	decision, err := dnsfilter.EvaluateSnapshot(snapshot, deviceID, req.Question[0].Name, h.defaultAction)
 	if err != nil {
 		if errors.Is(err, dnsfilter.ErrInvalidDomain) {
 			h.writeError(w, req, dns.RcodeFormatError)
@@ -126,4 +142,27 @@ func (h *Handler) writeError(w dns.ResponseWriter, req *dns.Msg, rcode int) {
 	reply := new(dns.Msg)
 	reply.SetRcode(req, rcode)
 	_ = w.WriteMsg(reply)
+}
+
+
+// deviceForClient resolves the policy identity from a configured source-IP map.
+// Unknown clients fail closed. Source-IP mappings are not cryptographic identity;
+// protect the listener with network ACLs and stable DHCP reservations.
+func (h *Handler) deviceForClient(remote net.Addr) (string, bool) {
+	if len(h.clientDeviceMap) == 0 {
+		return h.deviceID, h.deviceID != ""
+	}
+	if remote == nil {
+		return "", false
+	}
+	host, _, err := net.SplitHostPort(remote.String())
+	if err != nil {
+		return "", false
+	}
+	ip := net.ParseIP(host)
+	if ip == nil {
+		return "", false
+	}
+	deviceID, ok := h.clientDeviceMap[ip.String()]
+	return deviceID, ok && strings.TrimSpace(deviceID) != ""
 }
