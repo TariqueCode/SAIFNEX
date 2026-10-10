@@ -183,3 +183,20 @@ func TestEvaluateSnapshotEnforcesScheduleAndExpiryAtRuntime(t *testing.T) {
 		t.Fatalf("scheduled rule outside window = %+v, %v; want default ALLOW", decision, err)
 	}
 }
+
+
+func TestEvaluateSnapshotFailsClosedWhenReferencedScheduleIsMissing(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"example.com","action":"BLOCK","priority":1,"enabled":true,"schedule_id":999}
+	],"schedules":{}}}}`)
+	_, err := EvaluateSnapshotAt(
+		snapshot,
+		"7",
+		"example.com",
+		Allow,
+		time.Date(2026, 10, 8, 6, 0, 0, 0, time.UTC),
+	)
+	if err == nil {
+		t.Fatal("expected missing referenced schedule to fail closed")
+	}
+}
