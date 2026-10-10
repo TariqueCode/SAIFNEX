@@ -40,6 +40,32 @@ class ScheduleResolverTest extends TestCase
         $this->assertTrue(app(ScheduleResolver::class)->isActive($schedule, $at));
     }
 
+    public function test_overnight_window_remains_active_after_midnight_on_the_following_day(): void
+    {
+        $schedule = $this->schedule([
+            'days' => [4],
+            'start' => '22:00',
+            'end' => '06:00',
+        ]);
+
+        $at = CarbonImmutable::parse('2026-10-09 01:30:00', 'Asia/Dhaka');
+
+        $this->assertTrue(app(ScheduleResolver::class)->isActive($schedule, $at));
+    }
+
+    public function test_overnight_window_wraps_from_sunday_into_monday(): void
+    {
+        $schedule = $this->schedule([
+            'days' => [7],
+            'start' => '22:00',
+            'end' => '06:00',
+        ]);
+
+        $at = CarbonImmutable::parse('2026-10-05 02:00:00', 'Asia/Dhaka');
+
+        $this->assertTrue(app(ScheduleResolver::class)->isActive($schedule, $at));
+    }
+
     public function test_disabled_schedule_is_never_active(): void
     {
         $schedule = $this->schedule([
