@@ -149,7 +149,7 @@
 </main>
 <footer class="footer">
     <div class="wrap footer-inner">
-        <a class="brand" href="#top"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 42 46" fill="none"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg></span><span>SAIFNEX<small>NETWORK INTELLIGENCE</small></span></a>
+        <a class="brand" href="#top" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX — Network Intelligence" width="170" height="58" style="display:block;width:170px;max-width:100%;height:auto;object-fit:contain"></a>
         <span>© {{ date('Y') }} SAIFNEX. Built for clarity, designed for trust.</span>
         <div class="footer-links"><a href="#platform">Platform</a><a href="#architecture">Architecture</a><a href="#top">Back to top ↑</a></div>
     </div>
