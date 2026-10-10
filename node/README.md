@@ -4,7 +4,7 @@ This Go module is the first portable node agent for the SAIFNEX control plane. I
 
 ## Current boundary
 
-**This is not yet a production DNS resolver or traffic enforcement engine.** It proves the control-plane-to-node signed configuration path and durable activation record. Do not route production traffic through it until a DNS/data-plane adapter, policy enforcement, load/recovery tests, and operational hardening are implemented and verified.
+**The node process is not yet a production DNS resolver or traffic enforcement engine.** The repository now has a tested DNS policy forwarding handler as a separate component, but it is not yet wired into the node process or connected to a live active-snapshot reload path. Do not route production traffic through it until integration, recovery, load, security, and operational tests pass.
 
 ## Build and test
 
@@ -13,6 +13,8 @@ Requires Go 1.23 or newer.
 ```sh
 cd node
 go test ./...
+go test -race ./...
+go vet ./...
 go build -o saifnex-node ./cmd/saifnex-node
 ```
 
@@ -26,11 +28,13 @@ Copy `saifnex-node.example.json` to a local file outside version control. Replac
 
 The control-plane URL must be HTTPS. Poll intervals and HTTP timeouts must be valid positive durations; zero or negative values are rejected during settings validation. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
 
-## DNS policy evaluator milestone
+## DNS policy evaluator and forwarding handler
 
-`internal/dnsfilter` now contains a deterministic domain-rule evaluator and `EvaluateSnapshot`, which reads per-device rules from a configuration snapshot after the caller has verified the snapshot signature/hash. It accepts only snapshot `schema_version: 1`, normalizes ASCII DNS names, supports explicit `DOMAIN_EXACT` and `DOMAIN_SUFFIX` matches, sorts by ascending priority then rule ID, skips disabled rules, rejects unsupported enabled rule types/actions, and requires an explicit `ALLOW` or `BLOCK` default action. Missing or unknown schema versions are rejected instead of being guessed. Unit tests cover per-device isolation, deterministic ordering (including equal-priority ties), malformed snapshots, missing devices, and missing per-device rule lists. A device entry without a `rules` array is rejected rather than silently evaluated as an empty policy.
+`internal/dnsfilter` contains a deterministic domain-rule evaluator and `EvaluateSnapshot`, which reads per-device rules from a configuration snapshot after the caller has verified the snapshot signature/hash. It accepts only snapshot `schema_version: 1`, normalizes ASCII DNS names, supports explicit `DOMAIN_EXACT` and `DOMAIN_SUFFIX` matches, sorts by ascending priority then rule ID, skips disabled rules, rejects unsupported enabled rule types/actions, and requires an explicit `ALLOW` or `BLOCK` default action. Missing or unknown schema versions are rejected instead of being guessed.
 
-**Important:** this evaluator is not yet wired into the node runtime, does not listen on DNS ports, and does not intercept or filter live traffic. The runtime still only verifies and persists signed configuration snapshots. Before activation can enforce policies, the control-plane schema/compiler and runtime adapter must agree on target types, precedence, default behavior, schedule handling, and rollback semantics, followed by DNS protocol and security tests.
+`internal/dnsruntime` now provides a DNS handler that evaluates one explicitly configured device, returns NXDOMAIN for blocked names, forwards allowed queries to a configured upstream over UDP, returns SERVFAIL when the policy snapshot is unavailable or invalid, and validates required runtime settings. Tests cover block-without-forwarding, successful upstream forwarding, fail-closed behavior, and invalid handler configuration.
+
+**Integration limitations:** the handler is not yet started by `cmd/saifnex-node`; it needs a secure configuration surface, an active verified-snapshot provider/reloader, and an explicit device ID mapping (node ID is not assumed to equal device ID). The current handler uses a configured default action and does not yet consume schedule state, support encrypted upstream transports, or provide per-client device identification. These must be resolved and tested before production filtering. Do not expose an unrestricted public recursive resolver.
 
 ## Activation behavior
 
@@ -49,4 +53,4 @@ GET  /api/internal/v1/nodes/{node}/configuration
 POST /api/internal/v1/nodes/{node}/deployments/{deployment}/ack
 ```
 
-This is an early runtime milestone. The next release must implement and test actual policy enforcement and node-side rollback/recovery before the platform is considered install-ready.
+This is an early runtime milestone. Integration, node-side rollback/recovery, and security/operational validation are still required before the platform is considered install-ready.
