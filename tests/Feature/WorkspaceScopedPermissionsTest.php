@@ -76,6 +76,20 @@ class WorkspaceScopedPermissionsTest extends TestCase
         ]);
     }
 
+    public function test_inactive_network_member_cannot_access_even_with_the_required_permission(): void
+    {
+        [, $member, $network] = $this->networkWithMember('network.read');
+
+        NetworkMember::query()
+            ->where('network_id', $network->id)
+            ->where('user_id', $member->id)
+            ->update(['status' => 'SUSPENDED']);
+
+        $this->actingAs($member)
+            ->get(route('workspace.networks.show', $network->id))
+            ->assertNotFound();
+    }
+
     public function test_device_reader_can_view_nodes_but_cannot_enroll_one(): void
     {
         [, $reader, $network] = $this->networkWithMember('device.read');
