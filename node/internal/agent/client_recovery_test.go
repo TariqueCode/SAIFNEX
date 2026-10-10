@@ -104,7 +104,6 @@ func TestActiveVersionRequiresVerifiedPersistedSnapshot(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	data = bytes.Replace(data, []byte("signature"), []byte("signature"), 1)
 	var envelope map[string]any
 	if err := json.Unmarshal(data, &envelope); err != nil {
 		t.Fatal(err)
