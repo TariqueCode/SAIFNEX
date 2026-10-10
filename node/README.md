@@ -31,13 +31,13 @@ The runtime now supports an **explicitly opt-in** DNS forwarding service. It rem
 
 - `dns_listen_address`: bind address and port, such as `127.0.0.1:5353`
 - `dns_upstream`: upstream resolver host and port, such as `1.1.1.1:53`
-- `dns_device_id`: the exact device key present in the signed snapshot; it is not inferred from the node ID
+- either `dns_device_id`: the exact device key present in the signed snapshot; it is not inferred from the node ID, or `dns_client_device_map`: a map from client source IP addresses to exact device IDs present in the signed snapshot
 - `dns_default_action`: `ALLOW` or `BLOCK`
 - `dns_timeout`: positive duration (defaults to `5s` when DNS is enabled)
 
 The handler listens on both UDP and TCP at the configured address. Blocked domain queries receive NXDOMAIN; allowed queries are forwarded over UDP to the configured upstream; missing, malformed, or invalid active policy fails closed with SERVFAIL. The local active snapshot is reloaded and its hash, Ed25519 signature, schema version, and network binding are re-verified before policy evaluation. A missing active snapshot therefore does not become an allow-all policy.
 
-**Safety:** DNS remains disabled in the example configuration. Do not bind this service to a public interface or expose it as an unrestricted public resolver. Start with loopback in a controlled test environment. Before using a LAN-facing address, configure firewall rules and validate the intended device-to-policy mapping. This initial integration uses one configured device ID for all requests received by that listener; per-client device identification, encrypted upstream transport, caching, metrics, and production-grade operational recovery remain future work. Signed per-device snapshots now include schedule definitions and rule time bounds; the DNS evaluator enforces them at query time using the schedule timezone. A valid schedule outside its active window does not match; missing or malformed referenced schedule metadata returns an evaluation error, causing the DNS handler to return SERVFAIL rather than silently allow the query. The configured default action applies when no domain rule matches, so choose it intentionally.
+**Safety:** DNS remains disabled in the example configuration. Do not bind this service to a public interface or expose it as an unrestricted public resolver. Start with loopback in a controlled test environment. Before using a LAN-facing address, configure firewall rules and validate the intended device-to-policy mapping. When `dns_client_device_map` is configured, requests are evaluated against the device ID mapped to the client's source IP; unmapped clients fail closed with SERVFAIL. Source-IP mapping is not cryptographic identity, so use stable DHCP reservations and firewall/ACL controls, and do not expose this resolver to untrusted networks. If no map is configured, the single `dns_device_id` applies to every request. Encrypted upstream transport, caching, metrics, and production-grade operational recovery remain future work. Signed per-device snapshots now include schedule definitions and rule time bounds; the DNS evaluator enforces them at query time using the schedule timezone. A valid schedule outside its active window does not match; missing or malformed referenced schedule metadata returns an evaluation error, causing the DNS handler to return SERVFAIL rather than silently allow the query. The configured default action applies when no domain rule matches, so choose it intentionally.
 
 ## Policy evaluator
 
@@ -59,4 +59,4 @@ GET  /api/internal/v1/nodes/{node}/configuration
 POST /api/internal/v1/nodes/{node}/deployments/{deployment}/ack
 ```
 
-This is an integration milestone, not yet an install-ready production release. Continue with real compiler-to-node integration tests, per-client device identity, real compiler-to-node integration tests, update/rollback recovery, load testing, and operational security review before production deployment.
+This is an integration milestone, not yet an install-ready production release. Continue with real compiler-to-node integration tests, stronger per-client device identity than source-IP mapping, real compiler-to-node integration tests, update/rollback recovery, load testing, and operational security review before production deployment.
