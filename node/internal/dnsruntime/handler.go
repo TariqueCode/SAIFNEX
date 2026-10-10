@@ -42,13 +42,20 @@ func NewHandler(cfg Config) (*Handler, error) {
 	if strings.TrimSpace(cfg.DeviceID) == "" && len(cfg.ClientDeviceMap) == 0 {
 		return nil, errors.New("device_id or client_device_map is required")
 	}
+	clientDeviceMap := make(map[string]string, len(cfg.ClientDeviceMap))
 	for clientIP, deviceID := range cfg.ClientDeviceMap {
-		if net.ParseIP(strings.TrimSpace(clientIP)) == nil {
+		ip := net.ParseIP(strings.TrimSpace(clientIP))
+		if ip == nil {
 			return nil, fmt.Errorf("client_device_map key %q must be an IP address", clientIP)
 		}
 		if strings.TrimSpace(deviceID) == "" {
 			return nil, fmt.Errorf("client_device_map entry for %q has an empty device ID", clientIP)
 		}
+		key := ip.String()
+		if _, exists := clientDeviceMap[key]; exists {
+			return nil, fmt.Errorf("client_device_map contains duplicate normalized IP %q", key)
+		}
+		clientDeviceMap[key] = strings.TrimSpace(deviceID)
 	}
 	if _, _, err := net.SplitHostPort(cfg.Upstream); err != nil {
 		return nil, fmt.Errorf("upstream must be host:port: %w", err)
@@ -64,7 +71,7 @@ func NewHandler(cfg Config) (*Handler, error) {
 	}
 	return &Handler{
 		deviceID: cfg.DeviceID,
-		clientDeviceMap: cfg.ClientDeviceMap,
+		clientDeviceMap: clientDeviceMap,
 		upstream: cfg.Upstream,
 		defaultAction: cfg.DefaultAction,
 		timeout: cfg.Timeout,
