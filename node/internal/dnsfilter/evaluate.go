@@ -1,6 +1,7 @@
 package dnsfilter
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
