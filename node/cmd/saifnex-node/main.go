@@ -38,6 +38,7 @@ func main() {
 		action := dnsfilter.Action(cfg.DNSDefaultAction)
 		handler, err := dnsruntime.NewHandler(dnsruntime.Config{
 			DeviceID: cfg.DNSDeviceID,
+			ClientDeviceMap: cfg.DNSClientDeviceMap,
 			Upstream: cfg.DNSUpstream,
 			DefaultAction: action,
 			Timeout: mustDuration(cfg.DNSTimeout),
@@ -62,7 +63,7 @@ func main() {
 		tcpServer = &dns.Server{Listener: tcpListener, Handler: handler}
 		go serveDNS(ctx, stop, "UDP", udpServer, dnsErrors)
 		go serveDNS(ctx, stop, "TCP", tcpServer, dnsErrors)
-		log.Printf("DNS policy listener enabled on %s (UDP/TCP); device=%s upstream=%s", cfg.DNSListenAddress, cfg.DNSDeviceID, cfg.DNSUpstream)
+		log.Printf("DNS policy listener enabled on %s (UDP/TCP); static_device=%t client_ip_mappings=%d upstream=%s", cfg.DNSListenAddress, cfg.DNSDeviceID != "", len(cfg.DNSClientDeviceMap), cfg.DNSUpstream)
 	}
 
 	client, err := agent.NewClient(cfg)
