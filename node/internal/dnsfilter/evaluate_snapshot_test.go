@@ -200,3 +200,36 @@ func TestEvaluateSnapshotFailsClosedWhenReferencedScheduleIsMissing(t *testing.T
 		t.Fatal("expected missing referenced schedule to fail closed")
 	}
 }
+
+
+func TestEvaluateSnapshotSupportsOvernightScheduleAcrossSundayMonday(t *testing.T) {
+	snapshot := []byte(`{
+		"schema_version": 1,
+		"devices": {
+			"7": {
+				"rules": [
+					{"id": 1, "target_type": "DOMAIN", "target": "overnight.example", "action": "BLOCK", "priority": 1, "enabled": true, "schedule_id": 5}
+				],
+				"schedules": {
+					"5": {
+						"timezone": "Asia/Dhaka",
+						"enabled": true,
+						"definition": {"days": [7], "start": "22:00", "end": "06:00"}
+					}
+				}
+			}
+		}
+	}`)
+	// Monday 02:00 in Dhaka is Sunday 20:00 UTC.
+	mondayAtTwo := time.Date(2026, 10, 11, 20, 0, 0, 0, time.UTC)
+	decision, err := EvaluateSnapshotAt(snapshot, "7", "overnight.example", Allow, mondayAtTwo)
+	if err != nil || decision.Action != Block || !decision.Matched {
+		t.Fatalf("overnight rule Monday 02:00 Dhaka = %+v, %v; want BLOCK", decision, err)
+	}
+	// Monday 07:00 in Dhaka is outside the overnight window.
+	mondayAtSeven := time.Date(2026, 10, 12, 1, 0, 0, 0, time.UTC)
+	decision, err = EvaluateSnapshotAt(snapshot, "7", "overnight.example", Allow, mondayAtSeven)
+	if err != nil || decision.Action != Allow || decision.Matched {
+		t.Fatalf("overnight rule Monday 07:00 Dhaka = %+v, %v; want default ALLOW", decision, err)
+	}
+}
