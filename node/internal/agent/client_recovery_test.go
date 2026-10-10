@@ -89,3 +89,35 @@ func TestFailedConfigurationUpdatePreservesPreviousActiveSnapshot(t *testing.T) 
 		t.Fatal("failed configuration update changed the previously active snapshot")
 	}
 }
+
+func TestActiveVersionRequiresVerifiedPersistedSnapshot(t *testing.T) {
+	stateDir := t.TempDir()
+	settings := writeSignedActiveConfig(t, stateDir, false)
+	client := &Client{settings: settings}
+	if got := client.activeVersion(); got != 3 {
+		t.Fatalf("activeVersion() = %d, want 3 for a verified snapshot", got)
+	}
+
+	// Damage the persisted signature while keeping the envelope parseable.
+	path := filepath.Join(stateDir, "active-config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	data = bytes.Replace(data, []byte("signature"), []byte("signature"), 1)
+	var envelope map[string]any
+	if err := json.Unmarshal(data, &envelope); err != nil {
+		t.Fatal(err)
+	}
+	envelope["signature"] = "invalid-signature"
+	data, err = json.Marshal(envelope)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := os.WriteFile(path, data, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if got := client.activeVersion(); got != 0 {
+		t.Fatalf("activeVersion() = %d, want 0 for an unverified snapshot", got)
+	}
+}
