@@ -412,3 +412,86 @@ func TestHandlersApplyOnlyTheirConfiguredDevicePolicy(t *testing.T) {
 		t.Fatalf("upstream received %d requests after device-2 blocked query, want still 1", got)
 	}
 }
+
+
+func TestHandlerSelectsPolicyByConfiguredClientIP(t *testing.T) {
+	snapshot := []byte(`{
+		"schema_version": 1,
+		"devices": {
+			"device-1": {"rules": []},
+			"device-2": {"rules": [
+				{"id": 9, "target_type": "DOMAIN_SUFFIX", "target": "restricted.example", "action": "BLOCK", "priority": 1, "enabled": true}
+			]}
+		}
+	}`)
+	handler, err := NewHandler(Config{
+		ClientDeviceMap: map[string]string{"127.0.0.1": "device-2"},
+		Upstream: "127.0.0.1:9",
+		DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second,
+		Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSServer(t, handler)
+	response := query(t, listener, "ads.restricted.example")
+	if response.Rcode != dns.RcodeNameError {
+		t.Fatalf("rcode = %d, want NXDOMAIN using device-2 policy", response.Rcode)
+	}
+}
+
+func TestHandlerFailsClosedForUnmappedClientIP(t *testing.T) {
+	var forwarded atomic.Int32
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		forwarded.Add(1)
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		_ = w.WriteMsg(reply)
+	}))
+	handler, err := NewHandler(Config{
+		ClientDeviceMap: map[string]string{"192.0.2.10": "device-1"},
+		Upstream: upstream,
+		DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second,
+		Snapshot: func(context.Context) ([]byte, error) { return testSnapshot(t, nil), nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSServer(t, handler)
+	response := query(t, listener, "unmapped.example")
+	if response.Rcode != dns.RcodeServerFailure {
+		t.Fatalf("rcode = %d, want SERVFAIL for unmapped client", response.Rcode)
+	}
+	if forwarded.Load() != 0 {
+		t.Fatalf("upstream received %d requests, want 0", forwarded.Load())
+	}
+}
+
+func TestNewHandlerRejectsInvalidClientDeviceMappings(t *testing.T) {
+	base := Config{
+		ClientDeviceMap: map[string]string{"127.0.0.1": "device-1"},
+		Upstream: "127.0.0.1:53",
+		DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second,
+		Snapshot: func(context.Context) ([]byte, error) { return []byte("{}"), nil },
+	}
+	tests := []struct {
+		name string
+		mapping map[string]string
+	}{
+		{"invalid IP", map[string]string{"not-an-ip": "device-1"}},
+		{"empty device ID", map[string]string{"127.0.0.1": "  "}},
+		{"duplicate normalized IP", map[string]string{"::ffff:127.0.0.1": "device-1", "127.0.0.1": "device-2"}},
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			cfg := base
+			cfg.ClientDeviceMap = tc.mapping
+			if _, err := NewHandler(cfg); err == nil {
+				t.Fatal("expected invalid mapping to be rejected")
+			}
+		})
+	}
+}
