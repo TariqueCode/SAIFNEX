@@ -20,7 +20,7 @@ func TestCanonicalJSONSortsNestedObjectsButPreservesArrays(t *testing.T) {
 func TestVerifyConfigurationAcceptsValidEnvelope(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil { t.Fatal(err) }
-	snapshot := json.RawMessage(`{"network_id":"net-1","rules":[{"action":"BLOCK","domain":"example.com"}]}`)
+	snapshot := json.RawMessage(`{"schema_version":1,"network_id":"net-1","rules":[{"action":"BLOCK","domain":"example.com"}]}`)
 	canonical, err := canonicalJSON(snapshot)
 	if err != nil { t.Fatal(err) }
 	hash := sha256.Sum256(canonical)
@@ -37,7 +37,7 @@ func TestVerifyConfigurationAcceptsValidEnvelope(t *testing.T) {
 func TestVerifyConfigurationRejectsSignatureTampering(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil { t.Fatal(err) }
-	snapshot := json.RawMessage(`{"network_id":"net-1"}`)
+	snapshot := json.RawMessage(`{"schema_version":1,"network_id":"net-1"}`)
 	canonical, _ := canonicalJSON(snapshot)
 	hash := sha256.Sum256(canonical)
 	cfg := configuration{DeploymentID: 1, Version: 1, SchemaVersion: 1, Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]), SignatureAlgorithm: "Ed25519", Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, []byte("different")))}
@@ -47,10 +47,79 @@ func TestVerifyConfigurationRejectsSignatureTampering(t *testing.T) {
 
 func TestVerifyConfigurationRejectsWrongNetwork(t *testing.T) {
 	pub, priv, _ := ed25519.GenerateKey(rand.Reader)
-	snapshot := json.RawMessage(`{"network_id":"another-network"}`)
+	snapshot := json.RawMessage(`{"schema_version":1,"network_id":"another-network"}`)
 	canonical, _ := canonicalJSON(snapshot)
 	hash := sha256.Sum256(canonical)
 	cfg := configuration{DeploymentID: 1, Version: 1, SchemaVersion: 1, Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]), SignatureAlgorithm: "Ed25519", Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, canonical))}
 	settings := Settings{NetworkID: "net-1", PublicKey: base64.StdEncoding.EncodeToString(pub)}
 	if _, err := verifyConfiguration(cfg, settings); err == nil { t.Fatal("expected network mismatch") }
+}
+
+func TestVerifyConfigurationAcceptsLaravelNetworkShape(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := json.RawMessage(`{"schema_version":1,"network":{"id":42,"timezone":"Asia/Dhaka"},"devices":{}}`)
+	canonical, err := canonicalJSON(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := sha256.Sum256(canonical)
+	cfg := configuration{
+		DeploymentID: 1, ConfigurationID: 2, Version: 1, SchemaVersion: 1,
+		Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]),
+		SignatureAlgorithm: "Ed25519",
+		Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, canonical)),
+	}
+	settings := Settings{NetworkID: "42", PublicKey: base64.StdEncoding.EncodeToString(pub)}
+	if _, err := verifyConfiguration(cfg, settings); err != nil {
+		t.Fatalf("expected Laravel network.id snapshot to verify, got %v", err)
+	}
+}
+
+func TestVerifyConfigurationRejectsSnapshotSchemaMismatch(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := json.RawMessage(`{"schema_version":2,"network_id":"net-1"}`)
+	canonical, err := canonicalJSON(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := sha256.Sum256(canonical)
+	cfg := configuration{
+		DeploymentID: 1, ConfigurationID: 2, Version: 1, SchemaVersion: 1,
+		Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]),
+		SignatureAlgorithm: "Ed25519",
+		Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, canonical)),
+	}
+	settings := Settings{NetworkID: "net-1", PublicKey: base64.StdEncoding.EncodeToString(pub)}
+	if _, err := verifyConfiguration(cfg, settings); err == nil {
+		t.Fatal("expected snapshot/envelope schema mismatch to fail")
+	}
+}
+
+func TestVerifyConfigurationRejectsMissingNetworkBinding(t *testing.T) {
+	pub, priv, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	snapshot := json.RawMessage(`{"schema_version":1,"devices":{}}`)
+	canonical, err := canonicalJSON(snapshot)
+	if err != nil {
+		t.Fatal(err)
+	}
+	hash := sha256.Sum256(canonical)
+	cfg := configuration{
+		DeploymentID: 1, ConfigurationID: 2, Version: 1, SchemaVersion: 1,
+		Snapshot: snapshot, SnapshotHash: hex.EncodeToString(hash[:]),
+		SignatureAlgorithm: "Ed25519",
+		Signature: base64.StdEncoding.EncodeToString(ed25519.Sign(priv, canonical)),
+	}
+	settings := Settings{NetworkID: "net-1", PublicKey: base64.StdEncoding.EncodeToString(pub)}
+	if _, err := verifyConfiguration(cfg, settings); err == nil {
+		t.Fatal("expected missing network binding to fail")
+	}
 }
