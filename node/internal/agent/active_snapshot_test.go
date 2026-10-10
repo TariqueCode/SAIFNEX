@@ -1,6 +1,7 @@
 package agent
 
 import (
+	"bytes"
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/sha256"
@@ -68,6 +69,36 @@ func TestLoadActiveSnapshotRejectsTamperedSignature(t *testing.T) {
 	settings := writeSignedActiveConfig(t, stateDir, true)
 	if _, err := LoadActiveSnapshot(stateDir, settings); err == nil {
 		t.Fatal("expected tampered active snapshot signature to be rejected")
+	}
+}
+
+
+func TestLoadActiveSnapshotRejectsSnapshotHashMismatch(t *testing.T) {
+	stateDir := t.TempDir()
+	settings := writeSignedActiveConfig(t, stateDir, false)
+	path := filepath.Join(stateDir, "active-config.json")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tampered := bytes.Replace(data, []byte("Asia/Dhaka"), []byte("Asia/Kolkata"), 1)
+	if bytes.Equal(tampered, data) {
+		t.Fatal("test fixture did not contain expected timezone")
+	}
+	if err := os.WriteFile(path, tampered, 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadActiveSnapshot(stateDir, settings); err == nil {
+		t.Fatal("expected modified snapshot to be rejected for hash/signature mismatch")
+	}
+}
+
+func TestLoadActiveSnapshotRejectsWrongNetworkBinding(t *testing.T) {
+	stateDir := t.TempDir()
+	settings := writeSignedActiveConfig(t, stateDir, false)
+	settings.NetworkID = "43"
+	if _, err := LoadActiveSnapshot(stateDir, settings); err == nil {
+		t.Fatal("expected snapshot for another network to be rejected")
 	}
 }
 
