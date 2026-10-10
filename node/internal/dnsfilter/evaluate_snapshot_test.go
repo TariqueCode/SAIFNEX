@@ -67,3 +67,18 @@ func TestEvaluateSnapshotRequiresExplicitValidDefault(t *testing.T) {
 		t.Fatalf("error = %v, want ErrUnsupportedRule", err)
 	}
 }
+
+func TestEvaluateSnapshotBreaksEqualPriorityByRuleID(t *testing.T) {
+	snapshot := []byte(`{"devices":{"7":{"rules":[
+		{"id": 20, "target_type":"DOMAIN_EXACT","target":"example.com","action":"BLOCK","priority":5,"enabled":true},
+		{"id": 10, "target_type":"DOMAIN_EXACT","target":"example.com","action":"ALLOW","priority":5,"enabled":true}
+	]}}}`)
+
+	decision, err := EvaluateSnapshot(snapshot, "7", "example.com", Block)
+	if err != nil {
+		t.Fatalf("EvaluateSnapshot() error = %v", err)
+	}
+	if decision.Action != Allow || decision.RuleID != 10 {
+		t.Fatalf("decision = %+v, want lower-ID rule 10 to win equal-priority tie", decision)
+	}
+}
