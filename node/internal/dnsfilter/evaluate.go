@@ -89,7 +89,9 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 
 		matched := false
 		switch rule.TargetType {
-		case "DOMAIN_EXACT":
+		case "DOMAIN", "DOMAIN_EXACT":
+			// Laravel's policy model calls exact domain rules DOMAIN. Keep
+			// DOMAIN_EXACT as an explicit runtime alias for older snapshots.
 			matched = domain == target
 		case "DOMAIN_SUFFIX":
 			matched = domain == target || strings.HasSuffix(domain, "."+target)
