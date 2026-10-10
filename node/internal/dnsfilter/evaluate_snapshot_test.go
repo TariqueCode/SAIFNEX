@@ -233,3 +233,36 @@ func TestEvaluateSnapshotSupportsOvernightScheduleAcrossSundayMonday(t *testing.
 		t.Fatalf("overnight rule Monday 07:00 Dhaka = %+v, %v; want default ALLOW", decision, err)
 	}
 }
+
+
+func TestEvaluateSnapshotEnforcesStartsAtBoundary(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"future.example","action":"BLOCK","priority":1,"enabled":true,"starts_at":"2026-10-08T07:00:00Z"}
+	],"schedules":{}}}}`)
+	before := time.Date(2026, 10, 8, 6, 59, 59, 0, time.UTC)
+	decision, err := EvaluateSnapshotAt(snapshot, "7", "future.example", Allow, before)
+	if err != nil || decision.Action != Allow || decision.Matched {
+		t.Fatalf("decision before starts_at = %+v, %v; want default ALLOW", decision, err)
+	}
+	atBoundary := time.Date(2026, 10, 8, 7, 0, 0, 0, time.UTC)
+	decision, err = EvaluateSnapshotAt(snapshot, "7", "future.example", Allow, atBoundary)
+	if err != nil || decision.Action != Block || !decision.Matched {
+		t.Fatalf("decision at starts_at = %+v, %v; want BLOCK", decision, err)
+	}
+}
+
+func TestEvaluateSnapshotRejectsMalformedExpiryMetadata(t *testing.T) {
+	snapshot := []byte(`{"schema_version":1,"devices":{"7":{"rules":[
+		{"id":1,"target_type":"DOMAIN","target":"broken.example","action":"BLOCK","priority":1,"enabled":true,"expires_at":"not-a-time"}
+	],"schedules":{}}}}`)
+	_, err := EvaluateSnapshotAt(
+		snapshot,
+		"7",
+		"broken.example",
+		Allow,
+		time.Date(2026, 10, 8, 6, 0, 0, 0, time.UTC),
+	)
+	if err == nil {
+		t.Fatal("expected malformed expiry metadata to fail closed")
+	}
+}
