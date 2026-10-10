@@ -6,5 +6,11 @@
   "ed25519_public_key": "SET_BASE64_32_BYTE_PUBLIC_KEY",
   "state_dir": "./state",
   "poll_interval": "30s",
-  "http_timeout": "10s"
+  "http_timeout": "10s",
+  "dns_enabled": false,
+  "dns_listen_address": "127.0.0.1:5353",
+  "dns_upstream": "1.1.1.1:53",
+  "dns_device_id": "REPLACE_WITH_ASSIGNED_DEVICE_ID",
+  "dns_default_action": "BLOCK",
+  "dns_timeout": "5s"
 }
