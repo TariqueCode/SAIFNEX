@@ -5,6 +5,7 @@ namespace App\Services\Configuration;
 use App\Models\ConfigurationVersion;
 use App\Models\Network;
 use App\Services\Policy\ScheduleResolver;
+use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -129,11 +130,11 @@ class ConfigurationCompiler
                     }
                 }
 
-                if (!empty($rule['starts_at']) && $at->lt($rule['starts_at'])) {
+                if (!empty($rule['starts_at']) && $at->lt(CarbonImmutable::parse($rule['starts_at']))) {
                     return false;
                 }
 
-                if (!empty($rule['expires_at']) && $at->gt($rule['expires_at'])) {
+                if (!empty($rule['expires_at']) && $at->gt(CarbonImmutable::parse($rule['expires_at']))) {
                     return false;
                 }
 
