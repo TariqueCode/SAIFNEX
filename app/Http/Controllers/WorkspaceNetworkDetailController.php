@@ -1,13 +1,13 @@
 <?php
 
-namespace App\\Http\\Controllers;
+namespace App\Http\Controllers;
 
-use App\\Models\\PolicyProfile;
-use App\\Services\\Access\\NetworkAccess;
-use Illuminate\\Http\\RedirectResponse;
-use Illuminate\\Http\\Request;
-use Illuminate\\Support\\Str;
-use Illuminate\\View\\View;
+use App\Models\PolicyProfile;
+use App\Services\Access\NetworkAccess;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Illuminate\View\View;
 
 class WorkspaceNetworkDetailController extends Controller
 {
