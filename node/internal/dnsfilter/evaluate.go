@@ -21,6 +21,7 @@ type Rule struct {
 	ID         int64  `json:"id"`
 	TargetType string `json:"target_type"`
 	Target     string `json:"target"`
+	Priority   int64  `json:"priority"`
 	Action     string `json:"action"`
 	Enabled    bool   `json:"enabled"`
 }
