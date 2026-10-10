@@ -5,6 +5,8 @@ namespace App\Services\Policy;
 use App\Models\Schedule;
 use Carbon\CarbonImmutable;
 use Carbon\CarbonInterface;
+use DateTimeZone;
+use Throwable;
 
 class ScheduleResolver
 {
@@ -20,6 +22,8 @@ class ScheduleResolver
      *
      * ISO weekday numbers are used: 1 = Monday ... 7 = Sunday.
      * An overnight window such as 22:00 -> 06:00 is supported.
+     *
+     * Invalid definitions and timezones fail closed (inactive).
      */
     public function isActive(Schedule $schedule, ?CarbonInterface $at = null): bool
     {
@@ -27,17 +31,48 @@ class ScheduleResolver
             return false;
         }
 
-        $time = CarbonImmutable::instance($at ?? now())->setTimezone($schedule->timezone);
         $definition = $schedule->definition ?? [];
+        if (!is_array($definition)) {
+            return false;
+        }
 
-        $days = array_map('intval', $definition['days'] ?? [1, 2, 3, 4, 5, 6, 7]);
+        $days = $definition['days'] ?? [1, 2, 3, 4, 5, 6, 7];
+        if (!is_array($days) || $days === []) {
+            return false;
+        }
+
+        foreach ($days as $day) {
+            if (!is_int($day) && !(is_string($day) && preg_match('/^[1-7]$/D', $day) === 1)) {
+                return false;
+            }
+
+            if ((int) $day < 1 || (int) $day > 7) {
+                return false;
+            }
+        }
+
         $start = $definition['start'] ?? '00:00';
         $end = $definition['end'] ?? '23:59:59';
 
-        $current = $time->format('H:i:s');
+        if (!is_string($start) || !is_string($end)
+            || !$this->isValidTime($start) || !$this->isValidTime($end)) {
+            return false;
+        }
+
         $start = strlen($start) === 5 ? $start . ':00' : $start;
         $end = strlen($end) === 5 ? $end . ':00' : $end;
+
+        try {
+            // Validate the timezone before converting the instant.
+            new DateTimeZone($schedule->timezone);
+            $time = CarbonImmutable::instance($at ?? now())->setTimezone($schedule->timezone);
+        } catch (Throwable) {
+            return false;
+        }
+
+        $current = $time->format('H:i:s');
         $weekday = $time->isoWeekday();
+        $days = array_map('intval', $days);
 
         if ($start === $end) {
             return in_array($weekday, $days, true);
@@ -58,6 +93,15 @@ class ScheduleResolver
         $previousWeekday = $weekday === 1 ? 7 : $weekday - 1;
 
         return $current <= $end && in_array($previousWeekday, $days, true);
+    }
+
+    private function isValidTime(string $time): bool
+    {
+        if (preg_match('/^(?:[01]\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/D', $time) !== 1) {
+            return false;
+        }
+
+        return true;
     }
 
     /**
