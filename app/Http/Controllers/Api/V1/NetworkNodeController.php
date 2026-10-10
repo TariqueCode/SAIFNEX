@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\Network;
 use App\Models\NetworkNode;
+use App\Services\Access\NetworkAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -12,7 +13,7 @@ class NetworkNodeController extends Controller
 {
     public function index(Request $request, Network $network): JsonResponse
     {
-        $this->authorizeNetwork($network);
+        app(NetworkAccess::class)->require($request->user(), $network->id, 'device.read');
 
         return response()->json([
             'success' => true,
@@ -22,7 +23,7 @@ class NetworkNodeController extends Controller
 
     public function store(Request $request, Network $network): JsonResponse
     {
-        $this->authorizeNetwork($network);
+        app(NetworkAccess::class)->require($request->user(), $network->id, 'device.manage');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -58,7 +59,7 @@ class NetworkNodeController extends Controller
 
     public function show(Request $request, NetworkNode $node): JsonResponse
     {
-        $this->authorizeNetwork($node->network);
+        app(NetworkAccess::class)->require($request->user(), $node->network_id, 'device.read');
 
         return response()->json([
             'success' => true,
@@ -66,30 +67,4 @@ class NetworkNodeController extends Controller
         ]);
     }
 
-    private function authorizeNetwork(Network $network): void
-    {
-        $user = request()->user();
-
-        if ($network->owner_id === $user->id) {
-            return;
-        }
-
-        $member = $network->members()
-            ->where('users.id', $user->id)
-            ->wherePivot('status', 'ACTIVE')
-            ->first();
-
-        if (!$member) {
-            abort(403, 'You do not have permission to access this network.');
-        }
-
-        $hasPermission = \App\Models\Role::query()
-            ->whereKey($member->pivot->role_id)
-            ->whereHas('permissions', fn ($query) => $query->where('key', 'network.manage'))
-            ->exists();
-
-        if (!$hasPermission) {
-            abort(403, 'You do not have permission to manage network nodes.');
-        }
-    }
 }
