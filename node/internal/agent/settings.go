@@ -47,11 +47,19 @@ func LoadSettings(path string) (Settings, error) {
 	if s.HTTPTimeout == "" {
 		s.HTTPTimeout = "10s"
 	}
-	if _, err := time.ParseDuration(s.PollInterval); err != nil {
+	pollInterval, err := time.ParseDuration(s.PollInterval)
+	if err != nil {
 		return s, fmt.Errorf("invalid poll_interval: %w", err)
 	}
-	if _, err := time.ParseDuration(s.HTTPTimeout); err != nil {
+	if pollInterval <= 0 {
+		return s, errors.New("poll_interval must be greater than zero")
+	}
+	httpTimeout, err := time.ParseDuration(s.HTTPTimeout)
+	if err != nil {
 		return s, fmt.Errorf("invalid http_timeout: %w", err)
+	}
+	if httpTimeout <= 0 {
+		return s, errors.New("http_timeout must be greater than zero")
 	}
 	return s, nil
 }
