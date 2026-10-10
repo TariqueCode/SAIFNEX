@@ -65,7 +65,7 @@ func NewHandler(cfg Config) (*Handler, error) {
 // ServeDNS implements dns.Handler. A policy lookup failure fails closed with
 // SERVFAIL; malformed queries receive FORMERR. Blocked names receive NXDOMAIN.
 func (h *Handler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
-	if req == nil || len(req.Question) != 1 {
+	if req == nil || req.Response || req.Opcode != dns.OpcodeQuery || len(req.Question) != 1 {
 		reply := new(dns.Msg)
 		if req != nil {
 			reply.SetRcode(req, dns.RcodeFormatError)
