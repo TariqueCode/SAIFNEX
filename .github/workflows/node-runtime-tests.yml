@@ -35,5 +35,11 @@ jobs:
       - name: Test
         run: go test ./...
 
+      - name: Race detector
+        run: go test -race ./...
+
+      - name: Vet
+        run: go vet ./...
+
       - name: Build
         run: go build -o /tmp/saifnex-node ./cmd/saifnex-node
