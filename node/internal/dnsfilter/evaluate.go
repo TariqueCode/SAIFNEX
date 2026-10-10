@@ -78,6 +78,19 @@ func Evaluate(query string, rules []Rule, defaultAction Action) (Decision, error
 		if !rule.Enabled {
 			continue
 		}
+
+		// Rules for non-domain targets belong to other policy evaluators and
+		// cannot match a DNS hostname. Ignore the known target families rather
+		// than making every DNS query fail when a device also has IP/CIDR rules.
+		switch rule.TargetType {
+		case "DOMAIN", "DOMAIN_EXACT", "DOMAIN_SUFFIX":
+			// Evaluated below.
+		case "IP", "CIDR", "KEYWORD":
+			continue
+		default:
+			return Decision{}, fmt.Errorf("%w: target type %q on rule %d", ErrUnsupportedRule, rule.TargetType, rule.ID)
+		}
+
 		action := Action(rule.Action)
 		if action != Allow && action != Block {
 			return Decision{}, fmt.Errorf("%w: action %q on rule %d", ErrUnsupportedRule, rule.Action, rule.ID)
