@@ -112,6 +112,18 @@ class ConfigurationCompilerTest extends TestCase
             'action' => 'BLOCK',
             'priority' => 10,
         ]);
+        Schedule::create([
+            'network_id' => $network->id,
+            'name' => 'Unused schedule',
+            'timezone' => 'Asia/Dhaka',
+            'definition' => [
+                'days' => [1, 2, 3, 4, 5, 6, 7],
+                'start' => '00:00',
+                'end' => '23:59:59',
+            ],
+            'enabled' => true,
+        ]);
+
         $profile->rules()->create([
             'target_type' => 'DOMAIN',
             'target' => 'temporary.example',
@@ -146,6 +158,7 @@ class ConfigurationCompilerTest extends TestCase
         $scheduledRule = collect($deviceSnapshot['rules'])->firstWhere('target', 'scheduled.example');
         $this->assertSame($schedule->id, $scheduledRule['schedule_id']);
         $this->assertSame('Asia/Dhaka', $deviceSnapshot['schedules'][(string) $schedule->id]['timezone']);
+        $this->assertSame([(string) $schedule->id], array_keys($deviceSnapshot['schedules']));
         $this->assertSame(
             '2026-10-08T07:00:00+00:00',
             collect($deviceSnapshot['rules'])->firstWhere('target', 'temporary.example')['expires_at']

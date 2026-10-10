@@ -75,8 +75,8 @@ class ConfigurationCompiler
                     'type' => $device->type,
                     'profile_id' => $profile->id,
                     'policy_version' => $version->version,
-                    'rules' => $this->compileRules($version->snapshot['rules'] ?? []),
-                    'schedules' => $this->compileSchedules($network->schedules),
+                    'rules' => $runtimeRules = $this->compileRules($version->snapshot['rules'] ?? []),
+                    'schedules' => $this->compileSchedules($network->schedules, $runtimeRules),
                 ];
             }
 
@@ -127,11 +127,21 @@ class ConfigurationCompiler
      * Include the exact schedule definitions referenced by runtime rules.
      * The full definitions are signed with the same configuration snapshot.
      */
-    private function compileSchedules($schedules): array
+    private function compileSchedules($schedules, array $rules): array
     {
+        $referencedIds = collect($rules)
+            ->pluck('schedule_id')
+            ->filter(fn ($id) => $id !== null)
+            ->map(fn ($id) => (string) $id)
+            ->unique()
+            ->all();
         $compiled = [];
 
         foreach ($schedules as $schedule) {
+            if (!in_array((string) $schedule->id, $referencedIds, true)) {
+                continue;
+            }
+
             $compiled[(string) $schedule->id] = [
                 'timezone' => $schedule->timezone,
                 'definition' => $schedule->definition,
