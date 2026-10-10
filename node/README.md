@@ -39,6 +39,25 @@ The handler listens on both UDP and TCP at the configured address. Blocked domai
 
 **Safety:** DNS remains disabled in the example configuration. Do not bind this service to a public interface or expose it as an unrestricted public resolver. Start with loopback in a controlled test environment. Before using a LAN-facing address, configure firewall rules and validate the intended device-to-policy mapping. When `dns_client_device_map` is configured, requests are evaluated against the device ID mapped to the client's source IP; unmapped clients fail closed with SERVFAIL. Source-IP mapping is not cryptographic identity, so use stable DHCP reservations and firewall/ACL controls, and do not expose this resolver to untrusted networks. If no map is configured, the single `dns_device_id` applies to every request. Encrypted upstream transport, caching, metrics, and production-grade operational recovery remain future work. Signed per-device snapshots now include schedule definitions and rule time bounds; the DNS evaluator enforces them at query time using the schedule timezone. A valid schedule outside its active window does not match; missing or malformed referenced schedule metadata returns an evaluation error, causing the DNS handler to return SERVFAIL rather than silently allow the query. The configured default action applies when no domain rule matches, so choose it intentionally.
 
+### Example: source-IP to device mapping
+
+For a controlled LAN test, use stable DHCP reservations and configure mappings such as:
+
+```json
+{
+  "dns_enabled": true,
+  "dns_listen_address": "192.168.1.2:53",
+  "dns_upstream": "1.1.1.1:53",
+  "dns_client_device_map": {
+    "192.168.1.20": "device-1",
+    "192.168.1.21": "device-2"
+  },
+  "dns_default_action": "BLOCK",
+  "dns_timeout": "5s"
+}
+```
+
+When `dns_client_device_map` is present, it takes precedence over `dns_device_id`; clients absent from the map receive SERVFAIL. The mapped IDs must match keys under `devices` in the verified snapshot. Do not copy this LAN example without first setting up firewall restrictions, stable address assignments, and the matching device IDs.
 ## Policy evaluator
 
 `internal/dnsfilter` evaluates signed per-device policy snapshots using deterministic ascending priority and then rule ID. It enforces `starts_at`, exclusive `expires_at` boundaries, and weekly schedules (including overnight windows) using the timezone embedded in the signed schedule definition. It supports Laravel's exact-domain `DOMAIN` rule plus the `DOMAIN_EXACT` compatibility alias and `DOMAIN_SUFFIX`. Rules default to enabled when the `enabled` field is omitted, matching the control-plane policy convention; an explicit `enabled: false` disables a rule, and a non-boolean value is rejected. Known non-domain target families (`IP`, `CIDR`, `KEYWORD`) are skipped because they are handled by other evaluators; unknown target types and unsupported actions on applicable domain rules fail closed. Only snapshot schema version 1 is supported. Missing device entries or rule arrays are errors, not empty allow policies.
