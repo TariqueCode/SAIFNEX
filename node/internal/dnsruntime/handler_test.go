@@ -199,6 +199,30 @@ func TestHandlerServesDNSOverTCP(t *testing.T) {
 	}
 }
 
+
+func TestHandlerRejectsUpstreamResponseForDifferentQuestion(t *testing.T) {
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		reply.Question[0].Name = "different.example."
+		_ = w.WriteMsg(reply)
+	}))
+	snapshot := testSnapshot(t, nil)
+	handler, err := NewHandler(Config{
+		DeviceID: "device-1", Upstream: upstream, DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	listener := startDNSServer(t, handler)
+	response := query(t, listener, "requested.example")
+	if response.Rcode != dns.RcodeServerFailure {
+		t.Fatalf("rcode = %d, want SERVFAIL for mismatched upstream question", response.Rcode)
+	}
+}
+
 func TestHandlerFailsClosedWhenSnapshotUnavailable(t *testing.T) {
 	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		t.Error("upstream must not be called when policy is unavailable")
