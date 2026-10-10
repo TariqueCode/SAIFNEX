@@ -17,6 +17,11 @@ class NetworkFoundationSeeder extends Seeder
             ['key' => 'device.manage', 'name' => 'Manage devices'],
             ['key' => 'policy.read', 'name' => 'View policies'],
             ['key' => 'policy.manage', 'name' => 'Manage policies'],
+            ['key' => 'configuration.read', 'name' => 'View configuration history'],
+            ['key' => 'configuration.manage', 'name' => 'Generate and stage configurations'],
+            ['key' => 'configuration.publish', 'name' => 'Publish signed configurations'],
+            ['key' => 'deployment.read', 'name' => 'View deployments'],
+            ['key' => 'deployment.manage', 'name' => 'Create deployment requests'],
             ['key' => 'monitoring.read', 'name' => 'View monitoring'],
             ['key' => 'security.read', 'name' => 'View security'],
         ];
@@ -29,8 +34,8 @@ class NetworkFoundationSeeder extends Seeder
         }
 
         $roles = [
-            'viewer' => ['name' => 'Viewer', 'permissions' => ['network.read', 'device.read', 'policy.read', 'monitoring.read', 'security.read']],
-            'network_admin' => ['name' => 'Network Admin', 'permissions' => ['network.read', 'network.manage', 'device.read', 'device.manage', 'policy.read', 'policy.manage', 'monitoring.read', 'security.read']],
+            'viewer' => ['name' => 'Viewer', 'permissions' => ['network.read', 'device.read', 'policy.read', 'configuration.read', 'deployment.read', 'monitoring.read', 'security.read']],
+            'network_admin' => ['name' => 'Network Admin', 'permissions' => ['network.read', 'network.manage', 'device.read', 'device.manage', 'policy.read', 'policy.manage', 'configuration.read', 'configuration.manage', 'configuration.publish', 'deployment.read', 'deployment.manage', 'monitoring.read', 'security.read']],
         ];
 
         foreach ($roles as $key => $definition) {
