@@ -24,7 +24,7 @@ Copy `saifnex-node.example.json` to a local file outside version control. Replac
 ./saifnex-node -config /etc/saifnex/node.json
 ```
 
-The control-plane URL must be HTTPS. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
+The control-plane URL must be HTTPS. Poll intervals and HTTP timeouts must be valid positive durations; zero or negative values are rejected during settings validation. The runtime does not disable TLS verification. Protect the settings file (mode 0600) and state directory (mode 0700); run under a dedicated low-privilege service account. The bearer token is never written to logs.
 
 ## DNS policy evaluator milestone
 
