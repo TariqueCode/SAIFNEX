@@ -34,6 +34,15 @@ func TestEvaluateExactAndSuffixRulesInPriorityOrder(t *testing.T) {
 	}
 }
 
+func TestLaravelDomainRuleMatchesExactDomain(t *testing.T) {
+	decision, err := Evaluate("WWW.Example.COM.", []Rule{
+		{ID: 12, TargetType: "DOMAIN", Target: "example.com", Action: "BLOCK", Enabled: true},
+	}, Allow)
+	if err != nil || decision.Action != Block || !decision.Matched || decision.RuleID != 12 {
+		t.Fatalf("Laravel DOMAIN decision = %+v, %v", decision, err)
+	}
+}
+
 func TestSuffixDoesNotMatchLookalikeDomain(t *testing.T) {
 	decision, err := Evaluate("notexample.com", []Rule{
 		{ID: 1, TargetType: "DOMAIN_SUFFIX", Target: "example.com", Action: "BLOCK", Enabled: true},
