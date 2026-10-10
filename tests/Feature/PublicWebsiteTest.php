@@ -22,6 +22,6 @@ class PublicWebsiteTest extends TestCase
             ->assertSee('CONTROL CENTER', false)
             ->assertSee('PREVIEW MODE')
             ->assertSee('not connected to live networks')
-            ->assertSee('Sign-in, live metrics, and management actions will be connected');
+            ->assertSee('Sign-in is available, but live metrics and network management actions are not connected in this preview.');
     }
 }
