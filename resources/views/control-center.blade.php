@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="theme-color" content="#080d17">
+<link rel="icon" type="image/png" href="/favicon.png">
 <title>Control Center Preview · SAIFNEX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -16,7 +17,7 @@
 <body>
 <div class="app">
 <aside class="sidebar">
-<a href="/" class="brand"><svg class="mark" viewBox="0 0 42 46" fill="none" aria-hidden="true"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg><span>SAIFNEX<small>CONTROL CENTER</small></span></a>
+<a href="/" class="brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="190" height="64" style="display:block;width:190px;max-width:100%;height:auto;object-fit:contain"></a>
 <div class="navlabel">Workspace</div>
 <a class="navitem active" href="/control-center"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="7" height="8" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="3" width="7" height="5" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="14" y="12" width="7" height="9" rx="1.5" stroke="currentColor" stroke-width="1.6"/><rect x="3" y="15" width="7" height="6" rx="1.5" stroke="currentColor" stroke-width="1.6"/></svg>Overview</a>
 <a class="navitem" href="#networks"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="5" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="5" cy="19" r="2.5" stroke="currentColor" stroke-width="1.6"/><circle cx="19" cy="19" r="2.5" stroke="currentColor" stroke-width="1.6"/><path d="m10.8 7.2-4.5 9.5m6.9-9.5 4.5 9.5M7.5 19h9" stroke="currentColor" stroke-width="1.6"/></svg>Networks</a>
@@ -28,7 +29,7 @@
 <div class="sidebar-bottom"><a class="navitem" href="/"><svg viewBox="0 0 24 24" fill="none"><path d="m15 18-6-6 6-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg>Back to website</a><div class="profile"><div class="avatar">@auth{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}@else S @endauth</div><div>@auth<b>{{ auth()->user()->name }}</b><span>Signed in · preview data</span>@else<b>Preview workspace</b><span>Demo mode · no account</span>@endauth</div></div></div>
 </aside>
 <main class="main">
-<header class="top"><a class="mobile-brand" href="/"><svg viewBox="0 0 42 46" fill="none"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg>SAIFNEX</a><div class="crumb">Workspace <span style="padding:0 8px;color:#4f6281">/</span><b>Overview</b></div><div class="top-right"><span class="demo-pill"><i class="dot"></i> PREVIEW MODE</span>@auth<form method="POST" action="{{ route('logout') }}" style="margin:0">@csrf<button class="iconbtn" type="submit" aria-label="Sign out" title="Sign out">↪</button></form>@else<a class="iconbtn" href="{{ route('login') }}" aria-label="Sign in" title="Sign in" style="display:grid;place-items:center">↗</a>@endauth</div></header>
+<header class="top"><a class="mobile-brand" href="/" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="150" height="50" style="display:block;width:150px;max-width:100%;height:auto;object-fit:contain"></a><div class="crumb">Workspace <span style="padding:0 8px;color:#4f6281">/</span><b>Overview</b></div><div class="top-right"><span class="demo-pill"><i class="dot"></i> PREVIEW MODE</span>@auth<form method="POST" action="{{ route('logout') }}" style="margin:0">@csrf<button class="iconbtn" type="submit" aria-label="Sign out" title="Sign out">↪</button></form>@else<a class="iconbtn" href="{{ route('login') }}" aria-label="Sign in" title="Sign in" style="display:grid;place-items:center">↗</a>@endauth</div></header>
 <div class="content">
 <div class="pagehead"><div><div class="eyebrow">Network intelligence</div><h1>Good to see you here.</h1><p>Your network operations, designed to be easier to understand.</p></div><a class="btn btn-primary" href="/#platform">Explore platform <span>↗</span></a></div>
 <div class="notice"><div class="notice-icon">ⓘ</div><div><b>This is a UI preview — not connected to live networks.</b><p>Values are placeholders and no network activity is being collected here. Sign-in, live metrics, and management actions will be connected in the next implementation phase.</p></div></div>
