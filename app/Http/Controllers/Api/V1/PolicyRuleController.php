@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1;
 use App\Http\Controllers\Controller;
 use App\Models\PolicyProfile;
 use App\Models\PolicyRule;
+use App\Services\Policy\PolicyRuleTimeNormalizer;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -14,7 +15,10 @@ class PolicyRuleController extends Controller
     {
         $this->authorizeManage($policy);
 
-        $data = $this->validated($request);
+        $data = app(PolicyRuleTimeNormalizer::class)->normalize(
+            $this->validated($request),
+            $policy->network->timezone
+        );
         $rule = $policy->rules()->create([
             ...$data,
             'created_by' => $request->user()->id,
@@ -31,7 +35,10 @@ class PolicyRuleController extends Controller
         $this->ensureRuleBelongsToPolicy($policy, $rule);
         $this->authorizeManage($policy);
 
-        $rule->update($this->validated($request, true));
+        $rule->update(app(PolicyRuleTimeNormalizer::class)->normalize(
+            $this->validated($request, true),
+            $policy->network->timezone
+        ));
 
         return response()->json([
             'success' => true,
