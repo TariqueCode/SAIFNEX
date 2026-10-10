@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="theme-color" content="#080d17">
+<link rel="icon" type="image/png" href="/favicon.png">
 <title>Workspace · SAIFNEX</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 <style>
@@ -12,11 +13,11 @@
 </head>
 <body><div class="app">
 <aside class="sidebar">
-<a href="/" class="brand"><svg class="mark" viewBox="0 0 42 46" fill="none"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg><span>SAIFNEX<small>CONTROL CENTER</small></span></a>
+<a href="/" class="brand" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="190" height="64" style="display:block;width:190px;max-width:100%;height:auto;object-fit:contain"></a>
 <div class="navlabel">Workspace</div><a class="navitem active" href="{{ route('workspace') }}">▦ &nbsp; Overview</a><a class="navitem" href="#networks">⌘ &nbsp; Networks</a><a class="navitem" href="#networks">▤ &nbsp; Edge nodes</a><a class="navitem" href="#networks">☷ &nbsp; Policies</a><div class="navlabel">Resources</div><a class="navitem" href="/#architecture">⌁ &nbsp; Architecture</a><div class="bottom"><a class="navitem" href="/">← &nbsp; Back to website</a><div class="profile"><div class="avatar">{{ strtoupper(substr(auth()->user()->name, 0, 1)) }}</div><div><b>{{ auth()->user()->name }}</b><span>{{ auth()->user()->email }}</span></div></div></div>
 </aside>
 <main class="main">
-<header class="top"><a class="mobile-brand" href="/"><svg viewBox="0 0 42 46" fill="none"><path d="M21 2 37 8v12c0 11-7 18-16 23C12 38 5 31 5 20V8L21 2Z" stroke="currentColor" stroke-width="1.5"/><path d="m12 27 8-13 1 8 8-7-8 15-1-8-8 5Z" fill="currentColor"/></svg>SAIFNEX</a><div class="crumb">Workspace <span style="padding:0 8px;color:#4f6281">/</span><b>Overview</b></div><div class="right"><span class="pill"><i></i> SESSION ACTIVE</span><form method="POST" action="{{ route('logout') }}" style="margin:0">@csrf<button class="logout" type="submit">Sign out ↗</button></form></div></header>
+<header class="top"><a class="mobile-brand" href="/" aria-label="SAIFNEX home"><img src="/saifnex-logo.png" alt="SAIFNEX" width="150" height="50" style="display:block;width:150px;max-width:100%;height:auto;object-fit:contain"></a><div class="crumb">Workspace <span style="padding:0 8px;color:#4f6281">/</span><b>Overview</b></div><div class="right"><span class="pill"><i></i> SESSION ACTIVE</span><form method="POST" action="{{ route('logout') }}" style="margin:0">@csrf<button class="logout" type="submit">Sign out ↗</button></form></div></header>
 <div class="content">
 <div class="pagehead"><div><div class="eyebrow">Network intelligence</div><h1>Welcome, {{ auth()->user()->name }}.</h1><p>Your workspace, with actual network records from your account.</p></div><button class="btn primary" id="openCreate" type="button">＋ Create network</button></div>
 @if (session('status'))<div class="success" role="status">{{ session('status') }}</div>@endif
