@@ -100,11 +100,26 @@ func (h *Handler) ServeDNS(w dns.ResponseWriter, req *dns.Msg) {
 	}
 
 	response, _, err := h.client.ExchangeContext(ctx, req, h.upstream)
-	if err != nil || response == nil {
+	if err != nil || response == nil || !matchesQuestion(response, req) {
 		h.writeError(w, req, dns.RcodeServerFailure)
 		return
 	}
 	_ = w.WriteMsg(response)
+}
+
+// matchesQuestion prevents an upstream response for a different DNS question
+// from being returned to the client. DNS names are case-insensitive.
+func matchesQuestion(response, request *dns.Msg) bool {
+	if response == nil || request == nil || response.Id != request.Id ||
+		!response.Response || len(response.Question) != 1 || len(request.Question) != 1 {
+		return false
+	}
+
+	got := response.Question[0]
+	want := request.Question[0]
+	return strings.EqualFold(dns.Fqdn(got.Name), dns.Fqdn(want.Name)) &&
+		got.Qtype == want.Qtype &&
+		got.Qclass == want.Qclass
 }
 
 func (h *Handler) writeError(w dns.ResponseWriter, req *dns.Msg, rcode int) {
