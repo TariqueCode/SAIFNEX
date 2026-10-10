@@ -13,7 +13,7 @@ var ErrDeviceNotFound = errors.New("device not found in configuration snapshot")
 
 type snapshotDocument struct {
 	Devices map[string]struct {
-		Rules []Rule `json:"rules"`
+		Rules *[]Rule `json:"rules"`
 	} `json:"devices"`
 }
 
@@ -42,7 +42,11 @@ func EvaluateSnapshot(snapshot []byte, deviceID string, query string, defaultAct
 		return Decision{}, fmt.Errorf("%w: %s", ErrDeviceNotFound, deviceID)
 	}
 
-	rules := append([]Rule(nil), device.Rules...)
+	if device.Rules == nil {
+		return Decision{}, fmt.Errorf("device %s has no rules list in configuration snapshot", deviceID)
+	}
+
+	rules := append([]Rule(nil), (*device.Rules)...)
 	sort.SliceStable(rules, func(i, j int) bool {
 		if rules[i].Priority == rules[j].Priority {
 			return rules[i].ID < rules[j].ID
