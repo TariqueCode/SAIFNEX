@@ -17,6 +17,18 @@ func TestCanonicalJSONSortsNestedObjectsButPreservesArrays(t *testing.T) {
 	if string(got) != want { t.Fatalf("canonical JSON mismatch\n got: %s\nwant: %s", got, want) }
 }
 
+func TestCanonicalJSONMatchesLaravelUnicodeSlashAndHTMLContract(t *testing.T) {
+	raw := json.RawMessage(`{"text":"café/東京 <&>","items":[3,{"z":"é","a":"x/y"}]}`)
+	got, err := canonicalJSON(raw)
+	if err != nil {
+		t.Fatal(err)
+	}
+	want := `{"items":[3,{"a":"x/y","z":"é"}],"text":"café/東京 <&>"}`
+	if string(got) != want {
+		t.Fatalf("canonical JSON mismatch\n got: %s\nwant: %s", got, want)
+	}
+}
+
 func TestVerifyConfigurationAcceptsValidEnvelope(t *testing.T) {
 	pub, priv, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil { t.Fatal(err) }
