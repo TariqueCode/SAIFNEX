@@ -1,19 +1,18 @@
 <?php
 
-namespace App\Http\Controllers;
+namespace App\\Http\\Controllers;
 
-use App\Models\Network;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\Http\Request;
-use Illuminate\Support\Str;
-use Illuminate\Validation\Rule;
-use Illuminate\View\View;
+use App\\Services\\Access\\NetworkAccess;
+use Illuminate\\Http\\RedirectResponse;
+use Illuminate\\Http\\Request;
+use Illuminate\\Validation\\Rule;
+use Illuminate\\View\\View;
 
 class WorkspaceNodeController extends Controller
 {
     public function index(Request $request, int $networkId): View
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'device.read');
         $network->load(['nodes' => fn ($query) => $query->latest('id')]);
 
         return view('workspace-nodes', compact('network'));
@@ -21,7 +20,7 @@ class WorkspaceNodeController extends Controller
 
     public function store(Request $request, int $networkId): RedirectResponse
     {
-        $network = $this->ownedNetwork($request, $networkId);
+        $network = app(NetworkAccess::class)->require($request->user(), $networkId, 'device.manage');
 
         $data = $request->validate([
             'name' => ['required', 'string', 'max:120'],
@@ -48,12 +47,5 @@ class WorkspaceNodeController extends Controller
             ->with('new_node_token', $token)
             ->with('new_node_name', $node->name)
             ->with('status', 'Node registered. Copy its credential now; it will not be shown again.');
-    }
-
-    private function ownedNetwork(Request $request, int $networkId): Network
-    {
-        return Network::query()
-            ->where('owner_id', $request->user()->id)
-            ->findOrFail($networkId);
     }
 }
