@@ -158,7 +158,7 @@ class ConfigurationCompilerTest extends TestCase
         $scheduledRule = collect($deviceSnapshot['rules'])->firstWhere('target', 'scheduled.example');
         $this->assertSame($schedule->id, $scheduledRule['schedule_id']);
         $this->assertSame('Asia/Dhaka', $deviceSnapshot['schedules'][(string) $schedule->id]['timezone']);
-        $this->assertSame([(string) $schedule->id], array_keys($deviceSnapshot['schedules']));
+        $this->assertCount(1, $deviceSnapshot['schedules']);
         $this->assertSame(
             '2026-10-08T07:00:00+00:00',
             collect($deviceSnapshot['rules'])->firstWhere('target', 'temporary.example')['expires_at']
