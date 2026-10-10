@@ -41,7 +41,7 @@ func TestEvaluateSnapshotUsesDeviceRulesAndPriority(t *testing.T) {
 }
 
 func TestEvaluateSnapshotRejectsMissingDevice(t *testing.T) {
-	_, err := EvaluateSnapshot([]byte(`{"devices":{"7":{"rules":[]}}}`), "9", "example.com", Allow)
+	_, err := EvaluateSnapshot([]byte(`{"schema_version":1,"devices":{"7":{"rules":[]}}}`), "9", "example.com", Allow)
 	if !errors.Is(err, ErrDeviceNotFound) {
 		t.Fatalf("error = %v, want ErrDeviceNotFound", err)
 	}
@@ -62,7 +62,7 @@ func TestEvaluateSnapshotRequiresDevicesMap(t *testing.T) {
 }
 
 func TestEvaluateSnapshotRequiresExplicitValidDefault(t *testing.T) {
-	_, err := EvaluateSnapshot([]byte(`{"devices":{"7":{"rules":[]}}}`), "7", "example.com", Action("WARN"))
+	_, err := EvaluateSnapshot([]byte(`{"schema_version":1,"devices":{"7":{"rules":[]}}}`), "7", "example.com", Action("WARN"))
 	if !errors.Is(err, ErrUnsupportedRule) {
 		t.Fatalf("error = %v, want ErrUnsupportedRule", err)
 	}
@@ -84,8 +84,22 @@ func TestEvaluateSnapshotBreaksEqualPriorityByRuleID(t *testing.T) {
 }
 
 func TestEvaluateSnapshotRejectsDeviceWithoutRulesList(t *testing.T) {
-	_, err := EvaluateSnapshot([]byte(`{"devices":{"7":{"name":"Laptop"}}}`), "7", "example.com", Block)
+	_, err := EvaluateSnapshot([]byte(`{"schema_version":1,"devices":{"7":{"name":"Laptop"}}}`), "7", "example.com", Block)
 	if err == nil {
 		t.Fatal("expected missing rules list to fail closed")
+	}
+}
+
+func TestEvaluateSnapshotRejectsMissingSchemaVersion(t *testing.T) {
+	_, err := EvaluateSnapshot([]byte(`{"devices":{"7":{"rules":[]}}}`), "7", "example.com", Allow)
+	if err == nil {
+		t.Fatal("expected missing schema_version to fail")
+	}
+}
+
+func TestEvaluateSnapshotRejectsUnsupportedSchemaVersion(t *testing.T) {
+	_, err := EvaluateSnapshot([]byte(`{"schema_version":2,"devices":{"7":{"rules":[]}}}`), "7", "example.com", Allow)
+	if err == nil {
+		t.Fatal("expected unsupported schema_version to fail")
 	}
 }
