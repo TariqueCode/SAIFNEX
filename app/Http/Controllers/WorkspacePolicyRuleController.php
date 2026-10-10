@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Network;
 use App\Models\PolicyProfile;
 use App\Services\Access\NetworkAccess;
+use App\Services\Policy\PolicyRuleTimeNormalizer;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\Rule;
@@ -38,7 +39,7 @@ class WorkspacePolicyRuleController extends Controller
         ]);
 
         $profile->rules()->create([
-            ...$data,
+            ...app(PolicyRuleTimeNormalizer::class)->normalize($data, $network->timezone),
             'enabled' => $request->boolean('enabled', true),
             'created_by' => $request->user()->id,
         ]);
@@ -64,7 +65,7 @@ class WorkspacePolicyRuleController extends Controller
         ]);
 
         $rule->update([
-            ...$data,
+            ...app(PolicyRuleTimeNormalizer::class)->normalize($data, $network->timezone),
             'enabled' => $request->boolean('enabled'),
         ]);
 
