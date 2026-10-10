@@ -200,6 +200,46 @@ func TestHandlerServesDNSOverTCP(t *testing.T) {
 }
 
 
+
+func TestMatchesQuestionRejectsMismatchedDNSMetadata(t *testing.T) {
+	request := new(dns.Msg)
+	request.SetQuestion("example.com.", dns.TypeA)
+	request.Question[0].Qclass = dns.ClassINET
+
+	valid := new(dns.Msg)
+	valid.SetReply(request)
+
+	tests := []struct {
+		name   string
+		mutate func(*dns.Msg)
+	}{
+		{"transaction id", func(m *dns.Msg) { m.Id++ }},
+		{"not a response", func(m *dns.Msg) { m.Response = false }},
+		{"question name", func(m *dns.Msg) { m.Question[0].Name = "other.example." }},
+		{"question type", func(m *dns.Msg) { m.Question[0].Qtype = dns.TypeAAAA }},
+		{"question class", func(m *dns.Msg) { m.Question[0].Qclass = dns.ClassCHAOS }},
+		{"multiple questions", func(m *dns.Msg) { m.Question = append(m.Question, m.Question[0]) }},
+		{"missing question", func(m *dns.Msg) { m.Question = nil }},
+	}
+
+	if !matchesQuestion(valid, request) {
+		t.Fatal("matching response should be accepted")
+	}
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			response := valid.Copy()
+			tc.mutate(response)
+			if matchesQuestion(response, request) {
+				t.Fatal("mismatched response should be rejected")
+			}
+		})
+	}
+
+	if matchesQuestion(nil, request) || matchesQuestion(valid, nil) {
+		t.Fatal("nil messages must be rejected")
+	}
+}
+
 func TestHandlerRejectsUpstreamResponseForDifferentQuestion(t *testing.T) {
 	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := new(dns.Msg)
