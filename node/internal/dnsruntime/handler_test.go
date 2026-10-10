@@ -142,6 +142,35 @@ func TestHandlerForwardsAllowedDomain(t *testing.T) {
 	}
 }
 
+func TestHandlerBlocksMatchingDomainOverTCPWithoutForwarding(t *testing.T) {
+	var forwarded atomic.Int32
+	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
+		forwarded.Add(1)
+		reply := new(dns.Msg)
+		reply.SetReply(req)
+		_ = w.WriteMsg(reply)
+	}))
+	snapshot := testSnapshot(t, []dnsfilter.Rule{{
+		ID: 2, TargetType: "DOMAIN_SUFFIX", Target: "blocked.example",
+		Priority: 1, Action: "BLOCK", Enabled: true,
+	}})
+	handler, err := NewHandler(Config{
+		DeviceID: "device-1", Upstream: upstream, DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second, Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSTCPServer(t, handler)
+	response := queryTCP(t, listener, "ads.blocked.example")
+	if response.Rcode != dns.RcodeNameError {
+		t.Fatalf("TCP rcode = %d, want NXDOMAIN", response.Rcode)
+	}
+	if got := forwarded.Load(); got != 0 {
+		t.Fatalf("upstream received %d TCP-originated blocked requests, want 0", got)
+	}
+}
+
 func TestHandlerServesDNSOverTCP(t *testing.T) {
 	upstream := startDNSServer(t, dns.HandlerFunc(func(w dns.ResponseWriter, req *dns.Msg) {
 		reply := new(dns.Msg)
