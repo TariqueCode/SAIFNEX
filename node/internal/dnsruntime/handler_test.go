@@ -14,6 +14,9 @@ import (
 
 func testSnapshot(t *testing.T, rules []dnsfilter.Rule) []byte {
 	t.Helper()
+	if rules == nil {
+		rules = []dnsfilter.Rule{}
+	}
 	value := struct {
 		SchemaVersion int `json:"schema_version"`
 		Devices map[string]struct {
