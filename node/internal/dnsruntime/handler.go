@@ -16,7 +16,7 @@ import (
 // configuration snapshot. Implementations must never fetch unverified policy.
 type SnapshotProvider func(context.Context) ([]byte, error)
 
-// Config controls a single-device DNS forwarding handler.
+// Config controls a DNS forwarding handler with either a fixed device or source-IP device mappings.
 type Config struct {
 	DeviceID      string
 	ClientDeviceMap map[string]string
@@ -26,8 +26,8 @@ type Config struct {
 	Snapshot      SnapshotProvider
 }
 
-// Handler evaluates policy for one explicitly configured device and forwards
-// allowed DNS messages to the configured upstream resolver.
+// Handler selects a device policy, evaluates DNS rules, and forwards allowed
+// queries to the configured upstream resolver.
 type Handler struct {
 	deviceID      string
 	clientDeviceMap map[string]string
