@@ -169,8 +169,8 @@ type Schedule struct {
 
 type ScheduleWindow struct {
 	Days  []int  `json:"days"`
-	Start string `json:"start"`
-	End   string `json:"end"`
+	Start *string `json:"start"`
+	End   *string `json:"end"`
 }
 
 func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) (bool, error) {
@@ -207,12 +207,27 @@ func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) (boo
 		return false, fmt.Errorf("invalid timezone %q: %w", schedule.Timezone, err)
 	}
 	local := at.In(location)
-	start, errStart := parseScheduleTime(schedule.Definition.Start)
-	end, errEnd := parseScheduleTime(schedule.Definition.End)
-	if errStart != nil || errEnd != nil || len(schedule.Definition.Days) == 0 {
-		return false, errors.New("invalid schedule definition")
+	days := schedule.Definition.Days
+	if days == nil {
+		days = []int{1, 2, 3, 4, 5, 6, 7}
 	}
-	for _, day := range schedule.Definition.Days {
+	if len(days) == 0 {
+		return false, errors.New("invalid schedule definition: days cannot be empty")
+	}
+	startValue := "00:00"
+	if schedule.Definition.Start != nil {
+		startValue = *schedule.Definition.Start
+	}
+	endValue := "23:59:59"
+	if schedule.Definition.End != nil {
+		endValue = *schedule.Definition.End
+	}
+	start, errStart := parseScheduleTime(startValue)
+	end, errEnd := parseScheduleTime(endValue)
+	if errStart != nil || errEnd != nil {
+		return false, errors.New("invalid schedule definition: invalid start/end time")
+	}
+	for _, day := range days {
 		if day < 1 || day > 7 {
 			return false, fmt.Errorf("invalid ISO weekday %d", day)
 		}
@@ -223,7 +238,7 @@ func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) (boo
 	}
 	current := local.Hour()*3600 + local.Minute()*60 + local.Second()
 	containsDay := func(day int) bool {
-		for _, candidate := range schedule.Definition.Days {
+		for _, candidate := range days {
 			if candidate == day {
 				return true
 			}
