@@ -449,12 +449,13 @@ func TestHandlerFailsClosedForUnmappedClientIP(t *testing.T) {
 		reply.SetReply(req)
 		_ = w.WriteMsg(reply)
 	}))
+	snapshot := testSnapshot(t, nil)
 	handler, err := NewHandler(Config{
 		ClientDeviceMap: map[string]string{"192.0.2.10": "device-1"},
 		Upstream: upstream,
 		DefaultAction: dnsfilter.Allow,
 		Timeout: time.Second,
-		Snapshot: func(context.Context) ([]byte, error) { return testSnapshot(t, nil), nil },
+		Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
 	})
 	if err != nil {
 		t.Fatal(err)
