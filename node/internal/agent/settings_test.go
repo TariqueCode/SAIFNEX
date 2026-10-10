@@ -57,3 +57,39 @@ func TestLoadSettingsAcceptsPositiveIntervals(t *testing.T) {
 		t.Fatalf("unexpected parsed durations: poll=%q timeout=%q", settings.PollInterval, settings.HTTPTimeout)
 	}
 }
+
+func TestLoadSettingsRequiresExplicitDNSDeviceWhenEnabled(t *testing.T) {
+	path := writeSettingsFixture(t, "30s", "10s")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(data)
+	body = body[:len(body)-1] + `, "dns_enabled":true, "dns_listen_address":"127.0.0.1:5353", "dns_upstream":"1.1.1.1:53", "dns_default_action":"ALLOW"}`
+	if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := LoadSettings(path); err == nil {
+		t.Fatal("expected enabled DNS to require explicit dns_device_id")
+	}
+}
+
+func TestLoadSettingsAcceptsExplicitDNSConfiguration(t *testing.T) {
+	path := writeSettingsFixture(t, "30s", "10s")
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(data)
+	body = body[:len(body)-1] + `, "dns_enabled":true, "dns_listen_address":"127.0.0.1:5353", "dns_upstream":"1.1.1.1:53", "dns_device_id":"device-1", "dns_default_action":"BLOCK"}`
+	if err := os.WriteFile(path, []byte(body), 0600); err != nil {
+		t.Fatal(err)
+	}
+	settings, err := LoadSettings(path)
+	if err != nil {
+		t.Fatalf("expected valid DNS settings, got %v", err)
+	}
+	if settings.DNSTimeout != "5s" {
+		t.Fatalf("default DNS timeout = %q, want 5s", settings.DNSTimeout)
+	}
+}
