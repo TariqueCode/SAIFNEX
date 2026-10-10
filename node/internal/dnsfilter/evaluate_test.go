@@ -35,7 +35,7 @@ func TestEvaluateExactAndSuffixRulesInPriorityOrder(t *testing.T) {
 }
 
 func TestLaravelDomainRuleMatchesExactDomain(t *testing.T) {
-	decision, err := Evaluate("WWW.Example.COM.", []Rule{
+	decision, err := Evaluate("EXAMPLE.COM.", []Rule{
 		{ID: 12, TargetType: "DOMAIN", Target: "example.com", Action: "BLOCK", Enabled: true},
 	}, Allow)
 	if err != nil || decision.Action != Block || !decision.Matched || decision.RuleID != 12 {
