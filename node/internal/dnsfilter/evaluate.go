@@ -112,7 +112,11 @@ func EvaluateAt(query string, rules []Rule, defaultAction Action, at time.Time, 
 			continue
 		}
 
-		if !ruleTimeActive(rule, at, schedules) {
+		active, timeErr := ruleTimeActive(rule, at, schedules)
+		if timeErr != nil {
+			return Decision{}, fmt.Errorf("%w: invalid time metadata on rule %d: %v", ErrUnsupportedRule, rule.ID, timeErr)
+		}
+		if !active {
 			continue
 		}
 
@@ -169,35 +173,49 @@ type ScheduleWindow struct {
 	End   string `json:"end"`
 }
 
-func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) bool {
+func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) (bool, error) {
 	if rule.StartsAt != "" {
 		start, err := time.Parse(time.RFC3339, rule.StartsAt)
-		if err != nil || at.Before(start) {
-			return false
+		if err != nil {
+			return false, fmt.Errorf("invalid starts_at: %w", err)
+		}
+		if at.Before(start) {
+			return false, nil
 		}
 	}
 	if rule.ExpiresAt != "" {
 		expires, err := time.Parse(time.RFC3339, rule.ExpiresAt)
-		if err != nil || !at.Before(expires) {
-			return false
+		if err != nil {
+			return false, fmt.Errorf("invalid expires_at: %w", err)
+		}
+		if !at.Before(expires) {
+			return false, nil
 		}
 	}
 	if rule.ScheduleID == 0 {
-		return true
+		return true, nil
 	}
 	schedule, ok := schedules[strconv.FormatInt(rule.ScheduleID, 10)]
-	if !ok || !schedule.Enabled {
-		return false
+	if !ok {
+		return false, fmt.Errorf("schedule %d is missing from signed device snapshot", rule.ScheduleID)
+	}
+	if !schedule.Enabled {
+		return false, nil
 	}
 	location, err := time.LoadLocation(schedule.Timezone)
 	if err != nil {
-		return false
+		return false, fmt.Errorf("invalid timezone %q: %w", schedule.Timezone, err)
 	}
 	local := at.In(location)
 	start, errStart := parseScheduleTime(schedule.Definition.Start)
 	end, errEnd := parseScheduleTime(schedule.Definition.End)
 	if errStart != nil || errEnd != nil || len(schedule.Definition.Days) == 0 {
-		return false
+		return false, errors.New("invalid schedule definition")
+	}
+	for _, day := range schedule.Definition.Days {
+		if day < 1 || day > 7 {
+			return false, fmt.Errorf("invalid ISO weekday %d", day)
+		}
 	}
 	weekday := int(local.Weekday())
 	if weekday == 0 {
@@ -213,19 +231,19 @@ func ruleTimeActive(rule Rule, at time.Time, schedules map[string]Schedule) bool
 		return false
 	}
 	if start == end {
-		return containsDay(weekday)
+		return containsDay(weekday), nil
 	}
 	if start < end {
-		return containsDay(weekday) && current >= start && current <= end
+		return containsDay(weekday) && current >= start && current <= end, nil
 	}
 	if current >= start {
-		return containsDay(weekday)
+		return containsDay(weekday), nil
 	}
 	previous := weekday - 1
 	if previous == 0 {
 		previous = 7
 	}
-	return current <= end && containsDay(previous)
+	return current <= end && containsDay(previous), nil
 }
 
 func parseScheduleTime(value string) (int, error) {
