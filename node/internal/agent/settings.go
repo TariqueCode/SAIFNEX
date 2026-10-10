@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
 	"os"
 	"strings"
 	"time"
@@ -19,6 +20,12 @@ type Settings struct {
 	StateDir        string `json:"state_dir"`
 	PollInterval    string `json:"poll_interval,omitempty"`
 	HTTPTimeout     string `json:"http_timeout,omitempty"`
+	DNSEnabled      bool   `json:"dns_enabled,omitempty"`
+	DNSListenAddress string `json:"dns_listen_address,omitempty"`
+	DNSUpstream      string `json:"dns_upstream,omitempty"`
+	DNSDeviceID      string `json:"dns_device_id,omitempty"`
+	DNSDefaultAction string `json:"dns_default_action,omitempty"`
+	DNSTimeout       string `json:"dns_timeout,omitempty"`
 }
 
 func LoadSettings(path string) (Settings, error) {
@@ -61,6 +68,30 @@ func LoadSettings(path string) (Settings, error) {
 	if httpTimeout <= 0 {
 		return s, errors.New("http_timeout must be greater than zero")
 	}
+	if s.DNSEnabled {
+		if strings.TrimSpace(s.DNSDeviceID) == "" {
+			return s, errors.New("dns_device_id is required when dns_enabled is true")
+		}
+		if _, _, err := net.SplitHostPort(s.DNSListenAddress); err != nil {
+			return s, fmt.Errorf("dns_listen_address must be host:port: %w", err)
+		}
+		if _, _, err := net.SplitHostPort(s.DNSUpstream); err != nil {
+			return s, fmt.Errorf("dns_upstream must be host:port: %w", err)
+		}
+		if s.DNSDefaultAction != "ALLOW" && s.DNSDefaultAction != "BLOCK" {
+			return s, errors.New("dns_default_action must be ALLOW or BLOCK when dns_enabled is true")
+		}
+		if s.DNSTimeout == "" {
+			s.DNSTimeout = "5s"
+		}
+		dnsTimeout, err := time.ParseDuration(s.DNSTimeout)
+		if err != nil {
+			return s, fmt.Errorf("invalid dns_timeout: %w", err)
+		}
+		if dnsTimeout <= 0 {
+			return s, errors.New("dns_timeout must be greater than zero")
+		}
+	}
 	return s, nil
 }
 
@@ -71,5 +102,6 @@ func (s Settings) PublicSummary() map[string]any {
 		"network_id": s.NetworkID,
 		"state_dir": s.StateDir,
 		"poll_interval": s.PollInterval,
+		"dns_enabled": s.DNSEnabled,
 	}
 }
