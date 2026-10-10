@@ -18,7 +18,9 @@ func verifyConfiguration(c configuration, settings Settings) ([]byte, error) {
 		return nil, fmt.Errorf("unsupported signature algorithm %q", c.SignatureAlgorithm)
 	}
 	canonical, err := canonicalJSON(c.Snapshot)
-	if err != nil { return nil, err }
+	if err != nil {
+		return nil, err
+	}
 
 	sum := sha256.Sum256(canonical)
 	actualHash := hex.EncodeToString(sum[:])
@@ -37,17 +39,53 @@ func verifyConfiguration(c configuration, settings Settings) ([]byte, error) {
 		return nil, errors.New("Ed25519 signature verification failed")
 	}
 
-	var snapshot map[string]any
-	if err := json.Unmarshal(c.Snapshot, &snapshot); err != nil || snapshot == nil {
-		return nil, errors.New("snapshot must be a JSON object")
+	var snapshot struct {
+		SchemaVersion *int            `json:"schema_version"`
+		NetworkID     json.RawMessage `json:"network_id"`
+		Network       *struct {
+			ID json.RawMessage `json:"id"`
+		} `json:"network"`
 	}
-	// Check the network binding when the snapshot carries it. Older snapshots
-	// without this field remain compatible; deployment ownership is enforced by
-	// the authenticated control-plane endpoint.
-	if networkID, ok := snapshot["network_id"]; ok {
-		if fmt.Sprint(networkID) != settings.NetworkID {
-			return nil, errors.New("snapshot network_id does not match this node")
+	if err := json.Unmarshal(c.Snapshot, &snapshot); err != nil {
+		return nil, errors.New("snapshot must be a valid JSON object")
+	}
+	if snapshot.SchemaVersion == nil {
+		return nil, errors.New("snapshot schema_version is missing")
+	}
+	if *snapshot.SchemaVersion != c.SchemaVersion {
+		return nil, fmt.Errorf("snapshot schema_version %d does not match envelope schema_version %d", *snapshot.SchemaVersion, c.SchemaVersion)
+	}
+
+	// The Laravel compiler publishes network identity as network.id. Accept the
+	// older network_id form for compatibility, but never activate a snapshot
+	// whose network binding is absent or disagrees with this node's enrollment.
+	var networkValue json.RawMessage
+	if len(snapshot.NetworkID) > 0 && string(snapshot.NetworkID) != "null" {
+		networkValue = snapshot.NetworkID
+	}
+	if snapshot.Network != nil && len(snapshot.Network.ID) > 0 && string(snapshot.Network.ID) != "null" {
+		if len(networkValue) > 0 && !sameJSONScalar(networkValue, snapshot.Network.ID) {
+			return nil, errors.New("snapshot network and network_id fields disagree")
 		}
+		networkValue = snapshot.Network.ID
+	}
+	if len(networkValue) == 0 {
+		return nil, errors.New("snapshot network identity is missing")
+	}
+	var networkID any
+	if err := json.Unmarshal(networkValue, &networkID); err != nil {
+		return nil, errors.New("snapshot network identity is invalid")
+	}
+	if fmt.Sprint(networkID) != settings.NetworkID {
+		return nil, errors.New("snapshot network identity does not match this node")
 	}
 	return canonical, nil
+}
+
+func sameJSONScalar(a, b json.RawMessage) bool {
+	var av, bv any
+	if json.Unmarshal(a, &av) != nil || json.Unmarshal(b, &bv) != nil {
+		return false
+	}
+	return fmt.Sprint(av) == fmt.Sprint(bv)
 }
