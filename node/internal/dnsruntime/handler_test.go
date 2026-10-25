@@ -496,3 +496,32 @@ func TestNewHandlerRejectsInvalidClientDeviceMappings(t *testing.T) {
 		})
 	}
 }
+
+
+func TestHandlerSelectsPolicyByConfiguredClientIPOverTCP(t *testing.T) {
+	snapshot := []byte(`{
+		"schema_version": 1,
+		"devices": {
+			"device-1": {"rules": []},
+			"device-2": {"rules": [
+				{"id": 10, "target_type": "DOMAIN_SUFFIX", "target": "restricted.example", "action": "BLOCK", "priority": 1, "enabled": true}
+			]}
+		}
+	}`)
+	handler, err := NewHandler(Config{
+		DeviceID: "device-1",
+		ClientDeviceMap: map[string]string{"127.0.0.1": "device-2"},
+		Upstream: "127.0.0.1:9",
+		DefaultAction: dnsfilter.Allow,
+		Timeout: time.Second,
+		Snapshot: func(context.Context) ([]byte, error) { return snapshot, nil },
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener := startDNSTCPServer(t, handler)
+	response := queryTCP(t, listener, "ads.restricted.example")
+	if response.Rcode != dns.RcodeNameError {
+		t.Fatalf("TCP rcode = %d, want NXDOMAIN using mapped device-2 policy", response.Rcode)
+	}
+}
